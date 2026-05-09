@@ -158,6 +158,27 @@ export const a11yAnalyzer: Analyzer = {
           }
         }
 
+        // a11y/svg-no-title — svg with onClick / role=img / role=button needs
+        // an accessible name. Either a <title> child, aria-label, or aria-labelledby.
+        if (el.tag === "svg") {
+          const role = el.attrs["role"];
+          const hasClick = el.attrs["onClick"] !== undefined;
+          const ariaHidden = el.attrs["aria-hidden"];
+          const interactive = hasClick || role === "img" || role === "button";
+          if (interactive && ariaHidden !== "true") {
+            const hasTitle = /<title[\s>]/.test(el.text);
+            const hasLabel = !!el.attrs["aria-label"] || !!el.attrs["aria-labelledby"];
+            if (!hasTitle && !hasLabel) {
+              emit({
+                ruleId: "a11y/svg-no-title",
+                message: `<svg> with role/onClick has no <title> child or aria-label. Screen readers can't name it.`,
+                file: rel,
+                line: el.line,
+              });
+            }
+          }
+        }
+
         // a11y/empty-heading — heading tag with no static text, no aria-label.
         if (/^h[1-6]$/.test(el.tag) || el.tag === "Heading") {
           const stripped = stripJsxComments(el.text).replace(/<[^>]+>/g, "").replace(/\{[^{}]*\}/g, "").trim();

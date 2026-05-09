@@ -81,6 +81,21 @@ function analyzeFile(src: string, rel: string, ctx: AnalyzerContext) {
       }
     }
 
+    // copy/exclamation-overuse — visible text with multiple ! or hyperbolic phrasing.
+    // Fires only on real user-facing slots (button text, toast/alert text, attribute strings).
+    const exclaimCandidates = [plainText, ...inlineStrings].filter((s) => s && isUserFacingString(s));
+    for (const s of exclaimCandidates) {
+      if (/!{2,}/.test(s)) {
+        emit({
+          ruleId: "copy/exclamation-overuse",
+          message: `"${truncate(s, 80)}" contains repeated "!". Pick one — UI doesn't need to shout.`,
+          file: rel,
+          line: el.line,
+        });
+        break; // one diagnostic per element is enough
+      }
+    }
+
     // copy/redundant-error-prefix — toast/alert text starts with "Error:"/"Invalid:"/"Sorry,".
     if ((TOAST_LIKE_TAGS.has(el.tag) || el.tag === "AlertTitle" || el.tag === "ToastTitle") && plainText) {
       if (/^(?:error|invalid|sorry|oops|warning|failure)[:!,]/i.test(plainText)) {

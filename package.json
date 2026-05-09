@@ -1,6 +1,6 @@
 {
   "name": "design-doctor",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "description": "Your agent writes ugly UI. This catches it. A static-analysis CLI for React UX/UI that scores your codebase 0-100 and installs as an agent skill for Claude Code, Codex, Cursor, and Copilot. Tuned for Rails+Inertia and TanStack stacks.",
   "keywords": [
     "ux",
@@ -50,14 +50,21 @@
     "scan": "node bin/design-doctor.js scan ."
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.95.1",
     "@types/node": "^20.0.0",
     "playwright": "^1.40.0",
     "typescript": "^5.4.0"
   },
   "peerDependencies": {
+    "@anthropic-ai/sdk": "^0.40.0",
     "playwright": "^1.40.0"
   },
   "peerDependenciesMeta": {
-    "playwright": { "optional": true }
+    "playwright": {
+      "optional": true
+    },
+    "@anthropic-ai/sdk": {
+      "optional": true
+    }
   }
 }

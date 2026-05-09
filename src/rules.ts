@@ -258,6 +258,34 @@ defineRule({
   fix: "Either give the heading text or remove it. Empty headings break document structure for screen readers.",
 });
 defineRule({
+  id: "a11y/svg-no-title",
+  title: "Interactive SVG without accessible name",
+  category: "a11y",
+  defaultSeverity: "warning",
+  fix: "Add a `<title>` child or `aria-label` so screen readers can name the element. Decorative SVGs should have aria-hidden=\"true\".",
+});
+defineRule({
+  id: "copy/exclamation-overuse",
+  title: "User-facing string uses multiple exclamation marks",
+  category: "copy",
+  defaultSeverity: "info",
+  fix: "Pick one. Multiple exclamation marks read as shouting — at most one, usually zero.",
+});
+defineRule({
+  id: "design/text-bg-clash",
+  title: "Text and background use the same Tailwind token",
+  category: "design",
+  defaultSeverity: "error",
+  fix: "Same-token text and background renders invisible. Pick a contrasting foreground token.",
+});
+defineRule({
+  id: "shadcn/missing-asChild",
+  title: "Button onClick navigates instead of using asChild + Link",
+  category: "shadcn",
+  defaultSeverity: "info",
+  fix: "Wrap a Link with `<Button asChild>` so the DOM is a real anchor (middle-click, right-click, focus, screen-reader navigation list all work).",
+});
+defineRule({
   id: "shadcn/destructive-without-confirm",
   title: "destructive Button without a confirm step",
   category: "shadcn",

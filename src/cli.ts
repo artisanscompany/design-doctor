@@ -26,12 +26,15 @@ import { classesAnalyzer } from "./analyzers/classes.js";
 import { runVisionPass } from "./vision/orchestrator.js";
 import { finalize, writeFinalReport } from "./vision/finalize.js";
 import { SUB_DIMENSIONS } from "./vision/rubric.js";
+import { applyFixes } from "./fix.js";
 
 const USAGE = `
 Usage: design-doctor <command> [options]
 
 Commands:
   scan [path]         Scan a React project (default if first arg is a path)
+  fix [path]          Apply lossless autofixes (ascii ellipsis, html entities,
+                      button trailing period, redundant role=). Add --dry-run to preview.
   finalize [path]     Fold the agent's vision.json into the score (after scan --vision)
   install             Drop design-doctor into detected agent skill dirs
   explain <rule-id>   Show docs for a rule
@@ -53,6 +56,9 @@ Common scan flags:
 
 Vision pass (opt-in, requires Playwright + a running dev server):
   --vision                 Capture screenshots and emit a rubric for the agent to grade
+  --headless               Skip agent step: call Claude API directly with the screenshots.
+                           Requires ANTHROPIC_API_KEY env var and @anthropic-ai/sdk.
+  --vision-model MODEL     Override default vision model (claude-sonnet-4-6).
   --url URL                Base URL of running app (default http://localhost:3000)
   --routes-cap N           Max routes to capture (default 10)
 `;
@@ -84,6 +90,8 @@ interface ScanOpts {
   failOn: "error" | "warning" | "none";
   diff: string | null;
   vision: boolean;
+  visionHeadless: boolean;
+  visionModel: string | null;
   url: string | null;
   routesCap: number | null;
   quiet: boolean;
@@ -106,6 +114,7 @@ export function start(argv: string[]): void {
   if (head === "explain") return runExplain(args.slice(1));
   if (head === "install") return runInstall(args.slice(1));
   if (head === "finalize") return runFinalize(args.slice(1));
+  if (head === "fix") return runFix(args.slice(1));
 
   if (head === "scan") return runScan(args.slice(1));
   // Bare path → treat as scan
@@ -148,6 +157,28 @@ function runInstall(args: string[]) {
   for (const r of results) {
     console.log(`${r.copied ? "✓" : " "} ${r.dest}${dryRun ? " (dry-run)" : ""}`);
   }
+}
+
+function runFix(args: string[]) {
+  const dryRun = args.includes("--dry-run");
+  const path = args.find((a) => !a.startsWith("--")) ?? ".";
+  const project = detectProject(path);
+  if (!isFrontendApp(project)) {
+    console.error(`design-doctor: no React frontend detected at ${project.frontendRoot}`);
+    process.exit(2);
+  }
+  const results = applyFixes(project, { dryRun });
+  if (results.length === 0) {
+    console.log("No autofixable findings.");
+    return;
+  }
+  const totalFiles = results.length;
+  const totalChanges = results.reduce((s, r) => s + r.changes, 0);
+  console.log(`${dryRun ? "[dry-run] " : ""}fixed ${totalChanges} occurrences across ${totalFiles} files:`);
+  for (const r of results.slice(0, 30)) {
+    console.log(`  ${r.file} (${r.appliedRules.join(", ")})`);
+  }
+  if (results.length > 30) console.log(`  … (+${results.length - 30} more files)`);
 }
 
 function runFinalize(args: string[]) {
@@ -226,8 +257,17 @@ function runScan(args: string[]) {
         const v = await runVisionPass(project, config, score, {
           baseUrl: opts.url ?? config.url,
           routesCap: opts.routesCap ?? 10,
+          headless: opts.visionHeadless,
+          visionModel: opts.visionModel ?? undefined,
         });
         printVisionFollowup(v);
+        if (v.headless) {
+          // Auto-finalize when running headless: the agent step is replaced by
+          // the SDK call, so there's nothing to wait for.
+          const final = finalize({ outDir: v.outDir });
+          writeFinalReport(v.outDir, final);
+          renderFinalize(final);
+        }
       } catch (e) {
         console.error("");
         console.error(`vision pass failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -239,11 +279,15 @@ function runScan(args: string[]) {
   });
 }
 
-function printVisionFollowup(v: { rubricPath: string; templatePath: string; capturedRoutes: number; failedRoutes: number; baseUrl: string }) {
+function printVisionFollowup(v: { rubricPath: string; templatePath: string; capturedRoutes: number; failedRoutes: number; baseUrl: string; headless?: { visionJsonPath: string; costEstimate: number; modelUsed: string; failed: number } }) {
   console.log("");
   console.log(`vision pass: captured ${v.capturedRoutes} screenshot pairs from ${v.baseUrl}${v.failedRoutes ? ` (${v.failedRoutes} failed)` : ""}`);
   console.log(`  • rubric: ${v.rubricPath}`);
   console.log(`  • template: ${v.templatePath}`);
+  if (v.headless) {
+    console.log(`  • headless graded ${v.headless.modelUsed} → ${v.headless.visionJsonPath} (~$${v.headless.costEstimate.toFixed(3)}, ${v.headless.failed} failed)`);
+    return;
+  }
   console.log("");
   console.log(`Next:`);
   console.log(`  1. Read the rubric and the screenshots.`);
@@ -293,6 +337,8 @@ function parseScanArgs(args: string[]): ScanOpts {
     failOn: "none",
     diff: null,
     vision: false,
+    visionHeadless: false,
+    visionModel: null,
     url: null,
     routesCap: null,
     quiet: false,
@@ -308,6 +354,8 @@ function parseScanArgs(args: string[]): ScanOpts {
       case "--score": opts.scoreOnly = true; break;
       case "--no-color": opts.noColor = true; break;
       case "--vision": opts.vision = true; break;
+      case "--headless": opts.visionHeadless = true; break;
+      case "--vision-model": opts.visionModel = args[++i] ?? null; break;
       case "--quiet": opts.quiet = true; break;
       case "--url": opts.url = args[++i] ?? null; break;
       case "--routes-cap": opts.routesCap = parseInt(args[++i] ?? "0", 10) || null; break;

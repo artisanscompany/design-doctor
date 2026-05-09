@@ -97,6 +97,23 @@ export const shadcnAnalyzer: Analyzer = {
           }
         }
 
+        // shadcn/missing-asChild — Button with onClick that just navigates
+        // somewhere (router.push/navigate(...)/Link href). The proper shadcn
+        // pattern is `<Button asChild><Link to="/foo">...</Link></Button>` so
+        // the rendered element is the link (correct middle-click / right-click
+        // semantics, real href in the DOM, focus + a11y wins).
+        if (el.tag === "Button" && el.attrs["onClick"] !== undefined && el.attrs["asChild"] === undefined) {
+          const handler = String(el.attrs["onClick"] ?? "");
+          if (/(?:router|navigate|push|window\.location)\b.*['"`]\/[^'"`]+['"`]/.test(handler)) {
+            emit({
+              ruleId: "shadcn/missing-asChild",
+              message: `<Button onClick=…navigate(…)> emulates a link in JS. Use <Button asChild><Link to=\"…\">…</Link></Button> so the rendered DOM is a real anchor.`,
+              file: rel,
+              line: el.line,
+            });
+          }
+        }
+
         // shadcn/destructive-without-confirm — destructive Button without
         // either an enclosing AlertDialog or a confirm() in its onClick.
         const variantVal = el.attrs["variant"];

@@ -5,11 +5,14 @@ import { discoverRoutes } from "./routes.js";
 import { captureRoutes } from "./screenshot.js";
 import { ensureAuth, readAuthOptionsFromEnv } from "./auth.js";
 import { emitRubric } from "./rubric.js";
+import { gradeHeadless } from "./judge.js";
 
 export interface VisionOptions {
   baseUrl?: string;
   routesCap?: number;
   fullPage?: boolean;
+  headless?: boolean;
+  visionModel?: string;
 }
 
 export interface VisionRunResult {
@@ -19,6 +22,12 @@ export interface VisionRunResult {
   capturedRoutes: number;
   failedRoutes: number;
   baseUrl: string;
+  headless?: {
+    visionJsonPath: string;
+    costEstimate: number;
+    modelUsed: string;
+    failed: number;
+  };
 }
 
 export async function runVisionPass(
@@ -57,6 +66,29 @@ export async function runVisionPass(
     staticScore,
   });
 
+  let headless: VisionRunResult["headless"];
+  if (visionOpts.headless) {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      throw new Error("--vision --headless requires ANTHROPIC_API_KEY in your environment.");
+    }
+    const judge = await gradeHeadless({
+      outDir,
+      records,
+      baseUrl,
+      staticScore,
+      apiKey,
+      model: visionOpts.visionModel,
+      maxRoutes: visionOpts.routesCap,
+    });
+    headless = {
+      visionJsonPath: judge.visionJsonPath,
+      costEstimate: judge.costEstimate,
+      modelUsed: judge.modelUsed,
+      failed: judge.failed,
+    };
+  }
+
   return {
     outDir,
     rubricPath,
@@ -64,5 +96,6 @@ export async function runVisionPass(
     capturedRoutes: records.filter((r) => r.ok).length,
     failedRoutes: failed.length,
     baseUrl,
+    headless,
   };
 }

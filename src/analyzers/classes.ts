@@ -39,6 +39,12 @@ const SPACING_PAIRS: Array<[RegExp, RegExp[]]> = [
 // "no-effect" hover: hover:bg-X where the base is also bg-X (matching token).
 const HOVER_NOOP_RE = /\b(?:bg|text|border)-(\S+)\s+(?:[\w:-]*\s+)*hover:(?:bg|text|border)-\1\b/;
 
+// "text on the same color background" — visible accidents like
+// `bg-white text-white` or `bg-foreground text-foreground`. Catches a class of
+// accidental same-token pairing. Won't catch CSS-variable contrast issues
+// (those need rendering — vision pass territory).
+const TEXT_BG_CLASH_RE = /\bbg-(white|black|background|foreground|primary|secondary|muted|accent|destructive)\b(?=[^"]*\btext-\1\b)/;
+
 const DUPLICATE_MIN_TOKENS = 6;        // only flag long-ish strings
 const DUPLICATE_MIN_OCCURRENCES = 5;   // ≥5 uses across files = candidate for extraction
 
@@ -83,6 +89,16 @@ export const classesAnalyzer: Analyzer = {
               line,
             });
           }
+        }
+
+        if (TEXT_BG_CLASH_RE.test(cls)) {
+          const match = cls.match(/bg-(\w+)\b[^"]*\btext-\1\b/);
+          emit({
+            ruleId: "design/text-bg-clash",
+            message: `${match?.[0] ?? "text/bg pair"} — text and background use the same token; almost certainly invisible.`,
+            file: rel,
+            line,
+          });
         }
 
         if (HOVER_NOOP_RE.test(cls)) {

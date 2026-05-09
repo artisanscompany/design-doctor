@@ -60,6 +60,48 @@ defineRule({
   fix: "Pick one of px or rem for spacing/sizing and stay consistent.",
 });
 defineRule({
+  id: "design/duplicated-class-string",
+  title: "Same long Tailwind class set repeated across files",
+  category: "design",
+  defaultSeverity: "warning",
+  fix: "Extract the repeated className into a shared component, a CVA variant, or a Tailwind plugin component.",
+});
+defineRule({
+  id: "design/conflicting-classes",
+  title: "Conflicting Tailwind utilities in same className",
+  category: "design",
+  defaultSeverity: "warning",
+  fix: "Two utilities from the same family fight each other (e.g. flex+grid, px-2+pl-4). Drop one.",
+});
+defineRule({
+  id: "design/hover-no-effect",
+  title: "Hover state matches base — no visible change",
+  category: "design",
+  defaultSeverity: "info",
+  fix: "Either give the hover state a different token or drop the hover: variant entirely.",
+});
+defineRule({
+  id: "shadcn/raw-html-with-shadcn",
+  title: "Raw HTML element used in a file that imports the shadcn equivalent",
+  category: "shadcn",
+  defaultSeverity: "warning",
+  fix: "Use the shadcn primitive (Button, Input, Label, …) for consistent styling and built-in a11y.",
+});
+defineRule({
+  id: "shadcn/variant-fighting",
+  title: "variant= overridden by same-axis className",
+  category: "shadcn",
+  defaultSeverity: "warning",
+  fix: "Pick one source of truth — extend the variant in the design system or drop variant=.",
+});
+defineRule({
+  id: "shadcn/cn-helper-recommended",
+  title: "className uses string concat where cn() would resolve conflicts",
+  category: "shadcn",
+  defaultSeverity: "info",
+  fix: "Import { cn } from '@/lib/utils' (shadcn ships this) and pass space-separated args. Tailwind-merge resolves last-wins conflicts.",
+});
+defineRule({
   id: "design/variant-sprawl",
   title: "Component used with too many distinct variants",
   category: "design",

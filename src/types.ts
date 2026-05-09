@@ -8,7 +8,8 @@ export type Category =
   | "ui"
   | "inertia"
   | "tanstack"
-  | "stack";
+  | "stack"
+  | "shadcn";
 
 export interface Rule {
   id: string;

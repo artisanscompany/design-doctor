@@ -21,6 +21,8 @@ import { inertiaAnalyzer } from "./analyzers/inertia.js";
 import { tanstackAnalyzer } from "./analyzers/tanstack.js";
 import { stackAnalyzer } from "./analyzers/stack.js";
 import { variantsAnalyzer } from "./analyzers/variants.js";
+import { shadcnAnalyzer } from "./analyzers/shadcn.js";
+import { classesAnalyzer } from "./analyzers/classes.js";
 import { runVisionPass } from "./vision/orchestrator.js";
 import { finalize, writeFinalReport } from "./vision/finalize.js";
 import { SUB_DIMENSIONS } from "./vision/rubric.js";
@@ -65,6 +67,8 @@ const ANALYZERS: Analyzer[] = [
   tanstackAnalyzer,
   stackAnalyzer,
   variantsAnalyzer,
+  shadcnAnalyzer,
+  classesAnalyzer,
 ];
 
 interface ScanOpts {

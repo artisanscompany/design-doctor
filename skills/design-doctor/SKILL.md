@@ -1,7 +1,7 @@
 ---
 name: design-doctor
 description: Use when finishing a frontend feature, fixing a UI bug, before committing React/Inertia/TanStack code, or when the user wants a UX/UI health check. Static-analysis CLI scoring 0–100. Covers design-token sprawl (color/spacing/typography/z-index/shadow), microcopy quality (CTA shape, banned phrases, smart quotes, inclusive language), accessibility patterns beyond eslint-plugin-jsx-a11y (icon buttons, tap targets, focus replacement, heading order, onclick-on-div), form UX (label vs placeholder, inputmode, error association, submit loading), missing loading/error/empty states, Inertia conventions (Link vs <a>, useForm), TanStack route hygiene (errorComponent, pendingComponent, validateSearch), and devtools-in-prod.
-version: "1.1.0"
+version: "1.2.0"
 ---
 
 # Design Doctor

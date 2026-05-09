@@ -90,12 +90,13 @@ export const designTokensAnalyzer: Analyzer = {
         arbitraryHits.push({ file: rel, line, cls: mm[0] });
       }
 
-      // Font weight / family — both CSS and Tailwind.
+      // Font weight / family — normalize Tailwind weight names → numeric so
+      // `font-bold` and `font-weight: 700` count as one.
       FONT_WEIGHT_RE.lastIndex = 0;
       let fw: RegExpExecArray | null;
-      while ((fw = FONT_WEIGHT_RE.exec(src))) bump(fontWeights, fw[1].trim().replace(/[;,]+$/, ""));
+      while ((fw = FONT_WEIGHT_RE.exec(src))) bump(fontWeights, normalizeWeight(fw[1].trim().replace(/[;,]+$/, "")));
       TW_FONT_WEIGHT_RE.lastIndex = 0;
-      while ((fw = TW_FONT_WEIGHT_RE.exec(src))) bump(fontWeights, fw[1]);
+      while ((fw = TW_FONT_WEIGHT_RE.exec(src))) bump(fontWeights, normalizeWeight(fw[1]));
       FONT_FAMILY_RE.lastIndex = 0;
       let ff: RegExpExecArray | null;
       while ((ff = FONT_FAMILY_RE.exec(src))) bump(fontFamilies, normalizeFamily(ff[1]));
@@ -154,9 +155,11 @@ export const designTokensAnalyzer: Analyzer = {
       });
     }
 
-    // Cluster colors. Bucket by hue first, then run ΔE within each bucket.
+    // Cluster colors. Bucket by hue first, then run ΔE within each bucket. We
+    // exclude pure black / pure white opacity ladders (`rgba(0,0,0,*)`) — those
+    // are usually an intentional overlay scale, not sprawl.
     const COLOR_CAP = 1000;
-    const sampled = colorSamples.slice(0, COLOR_CAP);
+    const sampled = colorSamples.filter((s) => !isOverlayOpacityLadder(s.raw)).slice(0, COLOR_CAP);
     const clusters = clusterColors(sampled);
     const minCluster = config.thresholds.colorClusterMinSize ?? 3;
     for (const cluster of clusters) {
@@ -176,9 +179,10 @@ export const designTokensAnalyzer: Analyzer = {
     const arbitraryByFile = groupBy(arbitraryHits, (h) => h.file);
     for (const [file, hits] of arbitraryByFile) {
       const samples = hits.slice(0, 3).map((h) => h.cls).join(", ");
+      const noun = hits.length === 1 ? "value bypasses" : "values bypass";
       emit({
         ruleId: "design/arbitrary-tailwind-value",
-        message: `${hits.length} arbitrary Tailwind value${hits.length === 1 ? "" : "s"} bypass the scale (${samples}${hits.length > 3 ? "…" : ""})`,
+        message: `${hits.length} arbitrary Tailwind ${noun} the scale (${samples}${hits.length > 3 ? "…" : ""})`,
         file,
         line: hits[0].line,
       });
@@ -249,8 +253,24 @@ function normalizeFamily(s: string): string {
   return s.replace(/['"!important]/g, "").trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+const WEIGHT_NAME_TO_NUMBER: Record<string, string> = {
+  thin: "100", extralight: "200", light: "300", normal: "400", regular: "400",
+  medium: "500", semibold: "600", bold: "700", extrabold: "800", black: "900",
+};
+
+function normalizeWeight(s: string): string {
+  const lower = s.trim().toLowerCase();
+  return WEIGHT_NAME_TO_NUMBER[lower] ?? lower.replace(/\s+/g, "");
+}
+
 function normalizeShadow(s: string): string {
   return s.replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function isOverlayOpacityLadder(raw: string): boolean {
+  const lower = raw.toLowerCase().replace(/\s+/g, "");
+  // rgba(0,0,0,*) and rgba(255,255,255,*) — overlay scrim conventions.
+  return /^rgba\(0,0,0,/.test(lower) || /^rgba\(255,255,255,/.test(lower);
 }
 
 function groupBy<T, K>(arr: T[], key: (t: T) => K): Map<K, T[]> {

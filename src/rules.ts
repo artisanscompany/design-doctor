@@ -165,13 +165,7 @@ defineRule({
   defaultSeverity: "error",
   fix: "Use `<button>` or `<a>`. If you really need a div, add `role`, `tabIndex={0}`, and a keydown handler.",
 });
-defineRule({
-  id: "a11y/placeholder-as-label",
-  title: "Input has placeholder but no associated label",
-  category: "a11y",
-  defaultSeverity: "warning",
-  fix: "Add a `<label htmlFor>` or `aria-label`. Placeholders disappear when the user types — they're not labels.",
-});
+// a11y/placeholder-as-label was consolidated into forms/label-above-not-placeholder.
 defineRule({
   id: "a11y/lang-missing",
   title: "Root document missing `lang` attribute",

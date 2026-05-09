@@ -29,14 +29,18 @@ export const formsAnalyzer: Analyzer = {
 
         const name = (el.attrs["name"] ?? "") as string;
         const type = (el.attrs["type"] ?? "") as string;
-        const id = el.attrs["id"];
+        const idRaw = el.attrs["id"];
+        // Skip dynamic ids that came in as `{...}` expressions — we can't statically
+        // know what they evaluate to and risk misleading messages like
+        // `id="{\`confirm-notes-\${payment.id}"` that look like noise.
+        const id = typeof idRaw === "string" && !idRaw.startsWith("{") ? idRaw : null;
         const placeholder = el.attrs["placeholder"];
         const inputMode = el.attrs["inputMode"] ?? el.attrs["inputmode"];
         const required = el.attrs["required"] !== undefined || el.attrs["aria-required"] !== undefined;
         const ariaDescribedBy = el.attrs["aria-describedby"];
 
         // forms/label-above-not-placeholder — placeholder present, no <Label htmlFor=id>, no aria-label
-        if (placeholder && typeof id === "string") {
+        if (placeholder && id) {
           const hasLabelFor = new RegExp(`<[Ll]abel[^>]+htmlFor=["']${escapeRe(id)}["']`).test(src);
           const hasLabelEl = /\<[Ll]abel\b[^>]*>/.test(src);
           const hasAriaLabel = el.attrs["aria-label"] !== undefined;
@@ -65,7 +69,7 @@ export const formsAnalyzer: Analyzer = {
         }
 
         // forms/required-without-aria — visible asterisk in adjacent label without programmatic required
-        if (typeof id === "string" && !required) {
+        if (id && !required) {
           const labelMatch = new RegExp(`<label[^>]*htmlFor=["']${escapeRe(id)}["'][^>]*>([^<]+)<`).exec(src);
           if (labelMatch && REQUIRED_VISUAL_RE.test(labelMatch[1])) {
             emit({
@@ -78,7 +82,7 @@ export const formsAnalyzer: Analyzer = {
         }
 
         // forms/error-not-associated — heuristic: nearby element with role="alert" or "error" id pattern, but no aria-describedby
-        if (typeof id === "string" && !ariaDescribedBy) {
+        if (id && !ariaDescribedBy) {
           const errPattern = new RegExp(`id=["']${escapeRe(id)}-error["']|id=["']${escapeRe(id)}_error["']`);
           if (errPattern.test(src)) {
             emit({

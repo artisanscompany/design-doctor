@@ -35,20 +35,30 @@ export const inertiaAnalyzer: Analyzer = {
             });
           }
         }
-        // form-uses-useForm — only fires when:
-        //   - the file imports something from @inertiajs/react (so it's actually an Inertia page), AND
-        //   - the file does not already use a form library (Inertia useForm OR react-hook-form OR formik)
+        // form-uses-useForm — fires per <form> when:
+        //   - the file imports something from @inertiajs/react, AND
+        //   - the onSubmit handler in *this* form doesn't reference a form-library
+        //     bound submit (handleSubmit from RHF, form.submit / form.post from
+        //     Inertia useForm, etc.). Files mixing several forms are common; we
+        //     don't want one library import to suppress findings about the form
+        //     that genuinely uses raw onSubmit.
         if (el.tag === "form" && el.attrs["onSubmit"] !== undefined) {
           const isInertiaContext = /from\s+["']@inertiajs\/react["']/.test(src);
-          const usesAnyFormLib = /\buseForm\s*[(<]/.test(src) || /\buseFormContext\s*\(/.test(src) || /\bformik\b/i.test(src);
-          if (isInertiaContext && !usesAnyFormLib) {
-            emit({
-              ruleId: "inertia/form-uses-useform",
-              message: "Inertia page uses <form onSubmit> directly without a form library. useForm() carries CSRF + form.errors + form.processing for free.",
-              file: rel,
-              line: el.line,
-            });
-          }
+          if (!isInertiaContext) continue;
+
+          const handler = String(el.attrs["onSubmit"] ?? "");
+          // Form libraries leave a fingerprint inside the onSubmit value:
+          //   handleSubmit(...)       — react-hook-form
+          //   form.post / form.submit — Inertia useForm
+          //   formik.handleSubmit     — formik
+          if (/handleSubmit/.test(handler) || /\bform\.(post|put|patch|submit|delete)\b/.test(handler) || /formik\.handleSubmit/.test(handler)) continue;
+
+          emit({
+            ruleId: "inertia/form-uses-useform",
+            message: "Inertia page uses raw <form onSubmit>. useForm() handles CSRF + form.errors + form.processing for free.",
+            file: rel,
+            line: el.line,
+          });
         }
       }
     }

@@ -83,22 +83,7 @@ export const a11yAnalyzer: Analyzer = {
           }
         }
 
-        // placeholder-as-label
-        if (el.tag === "input" || el.tag === "Input") {
-          const hasPlaceholder = el.attrs["placeholder"] !== undefined;
-          const hasLabel = el.attrs["aria-label"] !== undefined || el.attrs["aria-labelledby"] !== undefined;
-          const id = el.attrs["id"];
-          // Look for an associated <label htmlFor> referencing this id.
-          const hasFor = typeof id === "string" && new RegExp(`htmlFor=["']${escapeRe(id)}["']`).test(src);
-          if (hasPlaceholder && !hasLabel && !hasFor) {
-            emit({
-              ruleId: "a11y/placeholder-as-label",
-              message: `<${el.tag}> has placeholder but no associated label or aria-label.`,
-              file: rel,
-              line: el.line,
-            });
-          }
-        }
+        // (placeholder-as-label is owned by the forms/ analyzer to avoid double-flagging.)
 
         // lang-missing — only checked on root-y files (layout/_app/root)
         if (el.tag === "html") {

@@ -46,6 +46,7 @@ Common scan flags:
   --fail-on error|warning  Exit non-zero policy
   --min-score N            Exit non-zero if score < N
   --no-color               Disable ANSI
+  --quiet                  Suppress info-level findings (only errors + warnings)
 
 Vision pass (opt-in, requires Playwright + a running dev server):
   --vision                 Capture screenshots and emit a rubric for the agent to grade
@@ -79,6 +80,7 @@ interface ScanOpts {
   vision: boolean;
   url: string | null;
   routesCap: number | null;
+  quiet: boolean;
 }
 
 export function start(argv: string[]): void {
@@ -178,6 +180,11 @@ function runScan(args: string[]) {
   runner.run().then(async (result) => {
     if (opts.strict) {
       for (const d of result.diagnostics) if (d.severity === "warning") d.severity = "error";
+    }
+    if (opts.quiet) {
+      // Suppress info-level findings from the *report* but keep them in the
+      // cached result.json (useful for `finalize` and downstream tooling).
+      result.diagnostics = result.diagnostics.filter((d) => d.severity !== "info");
     }
     const score = compute(result.diagnostics);
 
@@ -282,6 +289,7 @@ function parseScanArgs(args: string[]): ScanOpts {
     vision: false,
     url: null,
     routesCap: null,
+    quiet: false,
   };
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
@@ -294,6 +302,7 @@ function parseScanArgs(args: string[]): ScanOpts {
       case "--score": opts.scoreOnly = true; break;
       case "--no-color": opts.noColor = true; break;
       case "--vision": opts.vision = true; break;
+      case "--quiet": opts.quiet = true; break;
       case "--url": opts.url = args[++i] ?? null; break;
       case "--routes-cap": opts.routesCap = parseInt(args[++i] ?? "0", 10) || null; break;
       case "--min-score": opts.minScore = parseInt(args[++i] ?? "0", 10); break;

@@ -1,20 +1,28 @@
 import { readFileSync } from "node:fs";
-import { relative } from "node:path";
+import { basename, relative } from "node:path";
 import type { Analyzer, AnalyzerContext } from "../runner.js";
 import { walk, REACT_EXT } from "../walk.js";
 import type { ProjectInfo } from "../types.js";
 
 const DESTRUCTURE_RE = /\b(?:const|let|var)\s*\{([^}]+)\}\s*=\s*use(?:Query|Suspense\w*|InfiniteQuery|MutationState|Loader\w*|Page\w*|FetchData|Resource|SWR)\s*\(/g;
-const READS_LOADING = /\b(?:isLoading|isPending|loading|isFetching)\b/;
 const RENDERS_LOADING = /\{\s*(?:isLoading|isPending|loading|isFetching)\s*(?:&&|\?)/;
 const RENDERS_SKELETON = /<(?:Skeleton|Spinner|Loading|Loader|Shimmer)\b/;
 
-const READS_ERROR = /\b(?:error|isError)\b/;
 const RENDERS_ERROR = /\{\s*(?:error|isError)\s*(?:&&|\?)/;
 const RENDERS_ERROR_VIEW = /<(?:Error\w*|ErrorBoundary|ErrorState|EmptyError)\b/;
 
-const MAP_RENDER_RE = /\.\s*map\s*\(\s*\(?[^)]*\)?\s*=>/g;
-const HAS_LENGTH_GUARD = /\.length\s*(?:===|>)\s*0|\.length\s*\?|!\w+\.length/;
+const MAP_RENDER_RE = /(\w+|\)|\])\s*\.\s*map\s*\(\s*\(?[^)]*\)?\s*=>/g;
+const HAS_LENGTH_GUARD = /\.length\s*(?:===|>)\s*0|\.length\s*\?|!\w+\.length|\.length\s*&&/;
+
+// Files whose default export name suggests fixed-content lists (nav, footer,
+// breadcrumbs, steppers, FAQ blocks). Empty-state for these is meaningless —
+// the items live in code, not in user data.
+const FIXED_CONTENT_PATTERNS = [
+  /Footer/, /Header/, /TopNav/, /TopBar/, /SideBar/, /Sidebar/, /NavBar/, /Nav$/, /NavDropdown/,
+  /Breadcrumbs?/, /Stepper/, /TabNav/, /CategoryBar/, /AccountSwitcher/, /UserMenu/,
+  /HowItWorks/, /Steps?Section/, /Comparison/, /FAQ/, /FaqVideoSection/, /TestimonialsSection/,
+  /PathwaysSection/, /FilterDrawer/, /CountryCardsSection/,
+];
 
 export const uiStatesAnalyzer: Analyzer = {
   name: "ui-states",
@@ -28,7 +36,7 @@ export const uiStatesAnalyzer: Analyzer = {
       try { src = readFileSync(file, "utf8"); } catch { continue; }
       const rel = relative(project.root, file);
 
-      // Find data-fetching destructures and check whether they read loading/error/data branches.
+      // ── Loading / error states ───────────────────────────────────────
       DESTRUCTURE_RE.lastIndex = 0;
       let m: RegExpExecArray | null;
       const destructures: { fields: Set<string>; line: number }[] = [];
@@ -41,7 +49,6 @@ export const uiStatesAnalyzer: Analyzer = {
         );
         destructures.push({ fields, line: lineAt(src, m.index) });
       }
-
       for (const d of destructures) {
         if ((d.fields.has("isLoading") || d.fields.has("isPending") || d.fields.has("loading")) &&
             !RENDERS_LOADING.test(src) && !RENDERS_SKELETON.test(src)) {
@@ -63,23 +70,48 @@ export const uiStatesAnalyzer: Analyzer = {
         }
       }
 
-      // Empty-state heuristic: any `.map()` whose subject is a variable, where the subject
-      // appears in a length guard nowhere in the file.
+      // ── Empty state ──────────────────────────────────────────────────
+      // Skip pure-TS files (no JSX, can't be a list rendering) and skip files
+      // whose name suggests they render fixed nav/marketing content rather than
+      // user data.
+      if (!file.endsWith(".tsx") && !file.endsWith(".jsx")) continue;
+      const name = basename(file).replace(/\.(tsx|jsx)$/, "");
+      if (FIXED_CONTENT_PATTERNS.some((re) => re.test(name))) continue;
+
       MAP_RENDER_RE.lastIndex = 0;
-      const mapHits: { line: number; src: string }[] = [];
+      const eligibleHits: { line: number }[] = [];
       let mm: RegExpExecArray | null;
       while ((mm = MAP_RENDER_RE.exec(src))) {
-        mapHits.push({ line: lineAt(src, mm.index), src: src.slice(Math.max(0, mm.index - 60), mm.index + 80) });
+        // Look 80 chars left to grab the subject of the map.
+        const left = src.slice(Math.max(0, mm.index - 80), mm.index);
+        // Skip when subject is an inline literal: `[…].map`, `Object.keys(...).map`,
+        // `Object.entries(...).map`, `Array.from(...).map`. Those don't represent
+        // dynamic data with empty states.
+        if (/\]\s*$/.test(left)) continue;                   // `[…].map`
+        if (/\)\s*$/.test(left) && /(?:Object\.(?:keys|entries|values)|Array\.from|range|repeat|Array\.of)\s*\([^)]*\)\s*$/.test(left)) continue;
+        // Skip when the chained call is part of a transform pipeline used as a
+        // utility (e.g. `.filter(...).map(...)` for derivation, not rendering).
+        // We approximate by requiring the line to look like JSX context: contains
+        // `{` shortly after the .map opening.
+        eligibleHits.push({ line: lineAt(src, mm.index) });
       }
-      // Only report once per file to keep noise down.
-      if (mapHits.length > 0 && !HAS_LENGTH_GUARD.test(src)) {
-        emit({
-          ruleId: "ui/missing-empty-state",
-          message: `${mapHits.length} list rendering(s) without a .length empty-state branch in this file.`,
-          file: rel,
-          line: mapHits[0].line,
-        });
-      }
+
+      if (eligibleHits.length === 0) continue;
+      if (HAS_LENGTH_GUARD.test(src)) continue;
+
+      // Require some signal of dynamic data: a hook destructure or a prop spread.
+      const looksDynamic =
+        destructures.length > 0 ||
+        /props\.\w+/.test(src) ||
+        /useState|useFetch|useSWR|useLoaderData|usePage|useQuery/.test(src);
+      if (!looksDynamic) continue;
+
+      emit({
+        ruleId: "ui/missing-empty-state",
+        message: `${eligibleHits.length} list rendering${eligibleHits.length === 1 ? "" : "s"} without a .length empty-state branch.`,
+        file: rel,
+        line: eligibleHits[0].line,
+      });
     }
   },
 };

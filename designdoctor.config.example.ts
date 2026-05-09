@@ -1,5 +1,5 @@
-// Drop this at your project root as `.uxdoctor.json` (use the JSON form for v0.1).
-// A future version will accept `uxdoctor.config.ts` as well so you can `import` types.
+// Drop this at your project root as `.designdoctor.json` (use the JSON form for v0.1).
+// A future version will accept `designdoctor.config.ts` as well so you can `import` types.
 
 export default {
   preset: "default",            // default | strict | minimal

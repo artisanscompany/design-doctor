@@ -12,7 +12,7 @@ const SKIP_DIRS = new Set([
   ".vite",
   ".turbo",
   ".cache",
-  ".ux-doctor",
+  ".design-doctor",
   "vendor",
   "tmp",
   "public",

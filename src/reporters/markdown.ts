@@ -11,7 +11,7 @@ export interface MdContext {
 export function renderMarkdown(ctx: MdContext): string {
   const { project, result, score } = ctx;
   const lines: string[] = [];
-  lines.push(`## ux-doctor report`);
+  lines.push(`## design-doctor report`);
   lines.push("");
   lines.push(`**Score: ${score}/100 — ${toGrade(score)}**`);
   lines.push("");

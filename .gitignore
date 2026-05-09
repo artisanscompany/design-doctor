@@ -1,6 +1,6 @@
 node_modules/
 dist/
-.ux-doctor/
+.design-doctor/
 *.log
 .DS_Store
 .env

@@ -39,7 +39,7 @@ export function renderTty(ctx: TtyContext, io: NodeJS.WriteStream = process.stdo
   const out = (s: string) => io.write(s + "\n");
 
   // Detection phase
-  out(`${c.bold}ux-doctor${c.reset} ${c.dim}scanning${c.reset} ${shorten(project.frontendRoot)}`);
+  out(`${c.bold}design-doctor${c.reset} ${c.dim}scanning${c.reset} ${shorten(project.frontendRoot)}`);
   out(`  ${c.green}✔${c.reset} stack: ${describeStack(project)}`);
   out(`  ${c.green}✔${c.reset} styling: ${project.styling}${project.hasTailwindConfig ? " (config detected)" : ""}`);
   out(`  ${c.green}✔${c.reset} bundler: ${project.bundler}`);

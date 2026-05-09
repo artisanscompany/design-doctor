@@ -22,11 +22,11 @@ import { tanstackAnalyzer } from "./analyzers/tanstack.js";
 import { stackAnalyzer } from "./analyzers/stack.js";
 
 const USAGE = `
-Usage: ux-doctor <command> [options]
+Usage: design-doctor <command> [options]
 
 Commands:
   scan [path]         Scan a React project (default if first arg is a path)
-  install             Drop ux-doctor into detected agent skill dirs
+  install             Drop design-doctor into detected agent skill dirs
   explain <rule-id>   Show docs for a rule
   rules               List all rules
   version             Print version
@@ -75,7 +75,7 @@ export function start(argv: string[]): void {
   const head = args[0];
 
   if (head === "version" || head === "-v" || head === "--version") {
-    console.log(`ux-doctor ${VERSION}`);
+    console.log(`design-doctor ${VERSION}`);
     return;
   }
   if (head === "help" || head === "-h" || head === "--help") {
@@ -100,7 +100,7 @@ function runRules() {
 function runExplain(args: string[]) {
   const ruleId = args[0];
   if (!ruleId) {
-    console.error("Usage: ux-doctor explain <rule-id>");
+    console.error("Usage: design-doctor explain <rule-id>");
     process.exit(2);
   }
   try {
@@ -134,7 +134,7 @@ function runScan(args: string[]) {
   const project = detectProject(opts.path);
 
   if (!isFrontendApp(project)) {
-    console.error(`ux-doctor: no React frontend detected at ${project.frontendRoot}`);
+    console.error(`design-doctor: no React frontend detected at ${project.frontendRoot}`);
     process.exit(2);
   }
 
@@ -174,7 +174,7 @@ function runScan(args: string[]) {
 
     // Always cache the result for any future `finalize` step.
     try {
-      const dir = join(project.root, ".ux-doctor");
+      const dir = join(project.root, ".design-doctor");
       mkdirSync(dir, { recursive: true });
       writeFileSync(join(dir, "result.json"), renderJson({ project, result, score }));
     } catch {

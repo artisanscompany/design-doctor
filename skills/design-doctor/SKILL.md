@@ -1,25 +1,25 @@
 ---
-name: ux-doctor
+name: design-doctor
 description: Use when finishing a frontend feature, fixing a UI bug, before committing React/Inertia/TanStack code, or when the user wants a UX/UI health check. Static-analysis CLI scoring 0–100. Covers design-token sprawl (color/spacing/typography/z-index/shadow), microcopy quality (CTA shape, banned phrases, smart quotes, inclusive language), accessibility patterns beyond eslint-plugin-jsx-a11y (icon buttons, tap targets, focus replacement, heading order, onclick-on-div), form UX (label vs placeholder, inputmode, error association, submit loading), missing loading/error/empty states, Inertia conventions (Link vs <a>, useForm), TanStack route hygiene (errorComponent, pendingComponent, validateSearch), and devtools-in-prod.
 version: "1.0.0"
 ---
 
-# UX Doctor
+# Design Doctor
 
 Scans React frontends — particularly Rails+Inertia and TanStack apps — for UX/UI issues that don't show up in ESLint, type-checking, or tests. Outputs a 0–100 health score using the same per-unique-rule formula as react-doctor and rails-doctor.
 
 ## After making frontend changes
 
-Run `npx -y ux-doctor@latest scan . --verbose --diff` and check the score did not regress. Fix any new issues before committing.
+Run `npx -y design-doctor@latest scan . --verbose --diff` and check the score did not regress. Fix any new issues before committing.
 
 ## For general UI cleanup
 
-Run `npx -y ux-doctor@latest scan . --verbose` (without `--diff`) for a full sweep. Fix by severity — errors first, then warnings, then info.
+Run `npx -y design-doctor@latest scan . --verbose` (without `--diff`) for a full sweep. Fix by severity — errors first, then warnings, then info.
 
 ## Command
 
 ```bash
-npx -y ux-doctor@latest scan . --verbose --diff
+npx -y design-doctor@latest scan . --verbose --diff
 ```
 
 | Flag | Purpose |
@@ -40,7 +40,7 @@ npx -y ux-doctor@latest scan . --verbose --diff
 **Distributed via npm — NOT a Ruby gem, not a Python package.** Do not try `gem install`, `bundle exec`, `pip install`, or anything else. Use:
 
 ```bash
-npx -y ux-doctor@latest scan .
+npx -y design-doctor@latest scan .
 ```
 
 Works on any machine with Node 18+. Zero runtime dependencies in the core scan path.
@@ -63,11 +63,11 @@ Works on any machine with Node 18+. Zero runtime dependencies in the core scan p
 - **Pure type-checking** — keep using `tsc`.
 - **Runtime accessibility** — pair with `axe-core`/`@axe-core/react` in dev.
 
-When scanning a Rails+Inertia monorepo, ux-doctor scans the frontend dir (`app/frontend/`, `app/javascript/`, etc.) only. Run rails-doctor separately for the Ruby side.
+When scanning a Rails+Inertia monorepo, design-doctor scans the frontend dir (`app/frontend/`, `app/javascript/`, etc.) only. Run rails-doctor separately for the Ruby side.
 
 ## Configuration
 
-Drop a `.uxdoctor.json` (or `uxdoctor.config.json`) at the project root:
+Drop a `.designdoctor.json` (or `designdoctor.config.json`) at the project root:
 
 ```json
 {
@@ -102,7 +102,7 @@ When the optional vision pass lands (v0.2), static will be capped at 70 and the 
 
 ## Coding guidance for agents (apply when writing new UI code)
 
-When generating React/Inertia/TanStack UI, default to these patterns unless `.uxdoctor.json` or existing code says otherwise:
+When generating React/Inertia/TanStack UI, default to these patterns unless `.designdoctor.json` or existing code says otherwise:
 
 1. **Tokens, not literals.** Pick from Tailwind's scale or the project's CSS variables. Reach for `[#abc]` / `[13px]` / inline `#hex` only as a last resort.
 2. **Buttons say a verb.** \"Save changes\" not \"Click here to save\". 1–4 words. No trailing period.
@@ -118,6 +118,6 @@ When generating React/Inertia/TanStack UI, default to these patterns unless `.ux
 
 ## Reference
 
-- `npx -y ux-doctor@latest explain <rule-id>` — full rule documentation
-- `npx -y ux-doctor@latest rules` — full rule catalog
-- Source: https://github.com/artisanscompany/ux-doctor
+- `npx -y design-doctor@latest explain <rule-id>` — full rule documentation
+- `npx -y design-doctor@latest rules` — full rule catalog
+- Source: https://github.com/artisanscompany/design-doctor

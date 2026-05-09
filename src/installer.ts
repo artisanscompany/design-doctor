@@ -15,7 +15,7 @@ const TARGET_DIRS = [
 export interface InstallOptions { dryRun?: boolean; yes?: boolean; }
 
 export function install(opts: InstallOptions = {}): { dest: string; copied: boolean }[] {
-  const skillSrc = resolve(__dirname, "..", "skills", "ux-doctor");
+  const skillSrc = resolve(__dirname, "..", "skills", "design-doctor");
   if (!existsSync(skillSrc)) {
     throw new Error(`Skill source not found at ${skillSrc}`);
   }
@@ -25,7 +25,7 @@ export function install(opts: InstallOptions = {}): { dest: string; copied: bool
     const expanded = target.replace(/^~/, home);
     const parent = dirname(expanded);
     if (!existsSync(parent)) continue; // parent app dir not present — skip silently
-    const dest = join(expanded, "ux-doctor");
+    const dest = join(expanded, "design-doctor");
     if (opts.dryRun) {
       out.push({ dest, copied: false });
       continue;

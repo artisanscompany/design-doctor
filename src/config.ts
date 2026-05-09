@@ -18,9 +18,9 @@ const DEFAULTS: UxDoctorConfig = {
 };
 
 const FILENAMES = [
-  ".uxdoctor.json",
-  "uxdoctor.config.json",
-  ".ux-doctor.json",
+  ".designdoctor.json",
+  "designdoctor.config.json",
+  ".design-doctor.json",
 ];
 
 export function loadConfig(root: string): UxDoctorConfig {

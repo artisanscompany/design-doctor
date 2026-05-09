@@ -1,5 +1,5 @@
 {
-  "name": "ux-doctor",
+  "name": "design-doctor",
   "version": "0.1.0",
   "description": "Your agent writes ugly UI. This catches it. A static-analysis CLI for React UX/UI that scores your codebase 0-100 and installs as an agent skill for Claude Code, Codex, Cursor, and Copilot. Tuned for Rails+Inertia and TanStack stacks.",
   "keywords": [
@@ -19,18 +19,18 @@
     "cursor",
     "agent-skill"
   ],
-  "homepage": "https://github.com/artisanscompany/ux-doctor",
+  "homepage": "https://github.com/artisanscompany/design-doctor",
   "bugs": {
-    "url": "https://github.com/artisanscompany/ux-doctor/issues"
+    "url": "https://github.com/artisanscompany/design-doctor/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/artisanscompany/ux-doctor.git"
+    "url": "git+https://github.com/artisanscompany/design-doctor.git"
   },
   "license": "MIT",
   "author": "ArtisansCompany",
   "bin": {
-    "ux-doctor": "bin/ux-doctor.js"
+    "design-doctor": "bin/design-doctor.js"
   },
   "engines": {
     "node": ">=18"
@@ -41,13 +41,13 @@
     "skills/",
     "README.md",
     "LICENSE",
-    "uxdoctor.config.example.ts"
+    "designdoctor.config.example.ts"
   ],
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build",
     "test": "node --test test/",
-    "scan": "node bin/ux-doctor.js scan ."
+    "scan": "node bin/design-doctor.js scan ."
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

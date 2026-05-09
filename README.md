@@ -1,13 +1,13 @@
-# ux-doctor
+# design-doctor
 
-Your agent writes ugly UI. This catches it.
+Your agent writes ugly UI. design-doctor catches it.
 
 A static-analysis CLI for React UX/UI that scores your codebase 0–100 and installs as an agent skill for Claude Code, Codex, Cursor, and Copilot. Tuned for Rails+Inertia and TanStack stacks.
 
 ## Quick start
 
 ```bash
-npx -y ux-doctor@latest scan .
+npx -y design-doctor@latest scan .
 ```
 
 That's it. Zero config, zero install. Works on any machine with Node 18+.
@@ -15,9 +15,9 @@ That's it. Zero config, zero install. Works on any machine with Node 18+.
 For a project under active development:
 
 ```bash
-npx -y ux-doctor@latest scan . --verbose --diff   # only files changed vs main
-npx -y ux-doctor@latest scan . --score            # CI gate
-npx -y ux-doctor@latest scan . --markdown         # PR-ready
+npx -y design-doctor@latest scan . --verbose --diff   # only files changed vs main
+npx -y design-doctor@latest scan . --score            # CI gate
+npx -y design-doctor@latest scan . --markdown         # PR-ready
 ```
 
 ## What it catches
@@ -38,18 +38,18 @@ Things that don't show up in ESLint, type-checking, or tests:
 ## Installation as an agent skill
 
 ```bash
-npx -y ux-doctor@latest install
+npx -y design-doctor@latest install
 ```
 
 Drops `SKILL.md` into every detected agent directory:
-- `~/.claude/skills/ux-doctor/`
-- `~/.agents/skills/ux-doctor/` (Codex)
-- `~/.cursor/skills/ux-doctor/`
-- `~/.codeium/windsurf/skills/ux-doctor/`
-- `~/.config/github-copilot/skills/ux-doctor/`
-- `~/.config/opencode/skills/ux-doctor/`
+- `~/.claude/skills/design-doctor/`
+- `~/.agents/skills/design-doctor/` (Codex)
+- `~/.cursor/skills/design-doctor/`
+- `~/.codeium/windsurf/skills/design-doctor/`
+- `~/.config/github-copilot/skills/design-doctor/`
+- `~/.config/opencode/skills/design-doctor/`
 
-After install, your agent will run ux-doctor automatically when finishing a feature or fixing a UI bug.
+After install, your agent will run design-doctor automatically when finishing a feature or fixing a UI bug.
 
 ## Scoring
 
@@ -63,7 +63,7 @@ Per-unique-rule penalty: each unique error rule deducts 1.5 points, each unique 
 
 ## Configuration
 
-Drop `.uxdoctor.json` at the project root:
+Drop `.designdoctor.json` at the project root:
 
 ```json
 {
@@ -87,13 +87,13 @@ Drop `.uxdoctor.json` at the project root:
 Add to your workflow:
 
 ```yaml
-- run: npx -y ux-doctor@latest scan . --score --min-score 75
+- run: npx -y design-doctor@latest scan . --score --min-score 75
 ```
 
 Or comment on PRs:
 
 ```yaml
-- run: npx -y ux-doctor@latest scan . --markdown > /tmp/report.md
+- run: npx -y design-doctor@latest scan . --markdown > /tmp/report.md
 - uses: peter-evans/create-or-update-comment@v4
   with:
     issue-number: ${{ github.event.pull_request.number }}
@@ -105,7 +105,7 @@ Or comment on PRs:
 - **Rails backend**: [`rails-doctor`](https://github.com/artisanscompany/rails-doctor) — same npm + agent-skill model, scans the Ruby side.
 - **General React lint**: [`react-doctor`](https://github.com/millionco/react-doctor) — broader code-quality, dead-code, bundle-size.
 
-In a Rails+Inertia monorepo, run all three. ux-doctor scans only the frontend dir (`app/frontend/`, `app/javascript/`, etc.).
+In a Rails+Inertia monorepo, run all three. design-doctor scans only the frontend dir (`app/frontend/`, `app/javascript/`, etc.).
 
 ## Why static analysis for UX/UI?
 

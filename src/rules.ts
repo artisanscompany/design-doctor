@@ -258,6 +258,13 @@ defineRule({
   fix: "Either give the heading text or remove it. Empty headings break document structure for screen readers.",
 });
 defineRule({
+  id: "a11y/aria-misuse",
+  title: "ARIA state attribute on a non-interactive element",
+  category: "a11y",
+  defaultSeverity: "warning",
+  fix: "ARIA state attrs (aria-pressed, aria-expanded, aria-selected, aria-checked) belong on interactive elements with a role. Either add `role=\"button\"`/etc. or use the real element.",
+});
+defineRule({
   id: "a11y/svg-no-title",
   title: "Interactive SVG without accessible name",
   category: "a11y",

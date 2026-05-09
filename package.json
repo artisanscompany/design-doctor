@@ -1,6 +1,6 @@
 {
   "name": "design-doctor",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Your agent writes ugly UI. This catches it. A static-analysis CLI for React UX/UI that scores your codebase 0-100 and installs as an agent skill for Claude Code, Codex, Cursor, and Copilot. Tuned for Rails+Inertia and TanStack stacks.",
   "keywords": [
     "ux",

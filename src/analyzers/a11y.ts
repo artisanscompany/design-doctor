@@ -158,6 +158,22 @@ export const a11yAnalyzer: Analyzer = {
           }
         }
 
+        // a11y/aria-misuse — aria-* attributes on non-interactive, non-landmark
+        // elements (a div with aria-pressed, a span with aria-expanded, etc.)
+        // are almost always wrong. The role should determine what aria-* makes
+        // sense; bare divs/spans inherit role="generic" which has no aria-*.
+        if ((el.tag === "div" || el.tag === "span" || el.tag === "p") && !el.attrs["role"]) {
+          const ariaProps = Object.keys(el.attrs).filter((k) => /^aria-(?:pressed|expanded|selected|checked|haspopup|controls)$/.test(k));
+          if (ariaProps.length > 0) {
+            emit({
+              ruleId: "a11y/aria-misuse",
+              message: `<${el.tag}> uses ${ariaProps.join(", ")} without a role. These ARIA states only make sense on interactive elements — add role= or use a real button/link.`,
+              file: rel,
+              line: el.line,
+            });
+          }
+        }
+
         // a11y/svg-no-title — svg with onClick / role=img / role=button needs
         // an accessible name. Either a <title> child, aria-label, or aria-labelledby.
         if (el.tag === "svg") {

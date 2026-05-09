@@ -109,6 +109,13 @@ defineRule({
   fix: "Settle on a small fixed set of variants in your design system and migrate stragglers.",
 });
 defineRule({
+  id: "design/inline-styles",
+  title: "Inline style={{…}} for properties Tailwind handles",
+  category: "design",
+  defaultSeverity: "warning",
+  fix: "Move padding/color/font-size/etc. to className. Reserve inline `style` for genuinely dynamic values (CSS variables, computed transforms).",
+});
+defineRule({
   id: "design/dark-mode-pairing",
   title: "Tailwind class without paired dark: variant",
   category: "design",
@@ -215,6 +222,27 @@ defineRule({
   fix: "Use `<button>` or `<a>`. If you really need a div, add `role`, `tabIndex={0}`, and a keydown handler.",
 });
 // a11y/placeholder-as-label was consolidated into forms/label-above-not-placeholder.
+defineRule({
+  id: "a11y/link-purpose-unclear",
+  title: "Link text is too vague to stand alone",
+  category: "a11y",
+  defaultSeverity: "warning",
+  fix: "Replace generic link text (\"Read more\", \"Click here\") with a phrase that names the destination, or add aria-label.",
+});
+defineRule({
+  id: "a11y/label-without-for",
+  title: "<label> has no htmlFor and doesn't wrap an input",
+  category: "a11y",
+  defaultSeverity: "warning",
+  fix: "Add `htmlFor=\"input-id\"` or wrap the input inside the label.",
+});
+defineRule({
+  id: "shadcn/dialog-without-description",
+  title: "DialogContent missing DialogDescription",
+  category: "shadcn",
+  defaultSeverity: "warning",
+  fix: "Add `<DialogDescription>...` (or `aria-describedby`) so screen-reader users know what the dialog is about.",
+});
 defineRule({
   id: "a11y/lang-missing",
   title: "Root document missing `lang` attribute",

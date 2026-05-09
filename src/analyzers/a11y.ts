@@ -105,6 +105,60 @@ export const a11yAnalyzer: Analyzer = {
           }
         }
 
+        // a11y/link-purpose-unclear — anchors with empty/vague text and no aria-label.
+        if (el.tag === "a" || el.tag === "Link") {
+          const visibleText = stripJsxComments(el.text).replace(/<[^>]+>/g, "").trim();
+          const hasLabel = !!el.attrs["aria-label"] || !!el.attrs["aria-labelledby"] || !!el.attrs["title"];
+          if (!hasLabel) {
+            const lower = visibleText.toLowerCase();
+            const vague = lower === "" ||
+              lower === "click here" ||
+              lower === "here" ||
+              lower === "read more" ||
+              lower === "learn more" ||
+              lower === "more" ||
+              lower === "details" ||
+              lower === ">";
+            if (visibleText.length > 0 && vague) {
+              emit({
+                ruleId: "a11y/link-purpose-unclear",
+                message: `<${el.tag}> with text "${visibleText}" gives no context out of flow. Screen-reader users browsing a links list see only the text.`,
+                file: rel,
+                line: el.line,
+              });
+            }
+          }
+        }
+
+        // a11y/label-without-for — bare <label>foo</label> with no htmlFor and no nested input.
+        if (el.tag === "label") {
+          const hasFor = !!el.attrs["htmlFor"];
+          const wraps = /<input\b|<select\b|<textarea\b/.test(el.text);
+          if (!hasFor && !wraps) {
+            emit({
+              ruleId: "a11y/label-without-for",
+              message: `<label> has no htmlFor and doesn't wrap an input. The browser can't associate it with anything.`,
+              file: rel,
+              line: el.line,
+            });
+          }
+        }
+
+        // shadcn/dialog-without-description — DialogContent / SheetContent / AlertDialogContent
+        // without a paired description for screen readers. Common shadcn a11y miss.
+        if (el.tag === "DialogContent" || el.tag === "SheetContent" || el.tag === "AlertDialogContent") {
+          const hasDesc = /<(?:Dialog|Sheet|AlertDialog)Description\b/.test(el.text) ||
+                          el.attrs["aria-describedby"] !== undefined;
+          if (!hasDesc) {
+            emit({
+              ruleId: "shadcn/dialog-without-description",
+              message: `<${el.tag}> renders without a <${el.tag.replace("Content", "Description")}> child. Radix warns about this; screen readers lose context.`,
+              file: rel,
+              line: el.line,
+            });
+          }
+        }
+
         // onclick-on-div
         if (["div", "span", "li", "p", "section"].includes(el.tag)) {
           const hasClick = el.attrs["onClick"] !== undefined;
@@ -185,6 +239,10 @@ function lineAt(src: string, idx: number): number {
 
 function escapeRe(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function stripJsxComments(s: string): string {
+  return s.replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, "");
 }
 
 const LAZY_ALT_WORDS = new Set([

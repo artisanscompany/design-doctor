@@ -31,6 +31,9 @@ const TW_SHADOW_RE = /\bshadow-(?:sm|md|lg|xl|2xl|inner|none|\[[^\]]+\])\b/g;
 const TAILWIND_DARK_BG_RE = /\bbg-(?!\[)\S+/g; // any non-arbitrary bg-*
 const TAILWIND_DARK_PAIR_RE = /\bdark:bg-\S+/g;
 
+const INLINE_STYLE_RE = /style=\{\{([^{}]*)\}\}/g;
+const STATIC_STYLE_PROP_RE = /\b(?:padding|margin|color|backgroundColor|background(?!Image)|fontSize|fontWeight|width|height|borderRadius|border(?!Image)|boxShadow)\s*:/i;
+
 const PX_RE = /\b\d+px\b/;
 const REM_RE = /\b\d+(?:\.\d+)?rem\b/;
 
@@ -60,6 +63,8 @@ export const designTokensAnalyzer: Analyzer = {
     const filesByMixedUnit = new Map<string, { px: number; rem: number; lines: { line: number; raw: string }[] }>();
     const filesByUnpairedDark = new Map<string, number>();
     let projectHasDarkVariants = false;
+    const inlineStyleFiles = new Set<string>();
+    const inlineStyleSamples = new Map<string, number>();
 
     const allFiles = [...reactFiles, ...styleFiles];
     const FILE_CAP = 4000; // safety net for huge monorepos
@@ -92,6 +97,24 @@ export const designTokensAnalyzer: Analyzer = {
       while ((mm = BYPASS_TW_RE.exec(src))) {
         const { line } = locate(src, mm.index);
         arbitraryHits.push({ file: rel, line, cls: mm[0] });
+      }
+
+      // design/inline-styles — `style={{ padding: 16, color: "..." }}` for things
+      // Tailwind handles. Skip dynamic-only styles (transform values driven by
+      // hooks, etc.) by requiring a literal property like padding/color/font-size
+      // /background/margin in the inline object.
+      INLINE_STYLE_RE.lastIndex = 0;
+      let im: RegExpExecArray | null;
+      while ((im = INLINE_STYLE_RE.exec(src))) {
+        const styleBody = im[1];
+        if (!STATIC_STYLE_PROP_RE.test(styleBody)) continue;
+        // Skip the common legitimate cases: CSS variables, transforms, animation
+        // delays, dynamic positioning. These genuinely can't be expressed in
+        // Tailwind class strings.
+        if (/--[\w-]+\s*:|transform\s*:|animation|gridTemplate|backgroundImage\s*:\s*`/i.test(styleBody)) continue;
+        inlineStyleFiles.add(rel);
+        const { line } = locate(src, im.index);
+        if (!inlineStyleSamples.has(rel)) inlineStyleSamples.set(rel, line);
       }
 
       // Font weight / family — normalize Tailwind weight names → numeric so
@@ -230,6 +253,15 @@ export const designTokensAnalyzer: Analyzer = {
         line: info.lines[0]?.line,
       });
     }
+    for (const file of inlineStyleFiles) {
+      emit({
+        ruleId: "design/inline-styles",
+        message: `Inline style={{...}} with static properties (padding/color/etc.) — Tailwind class equivalents stay in the design system.`,
+        file,
+        line: inlineStyleSamples.get(file),
+      });
+    }
+
     if (projectHasDarkVariants) {
       // Only emit unpaired-dark findings if the project ships dark mode. Otherwise
       // the rule is just noise on a light-only app.

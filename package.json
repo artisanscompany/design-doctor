@@ -1,0 +1,56 @@
+{
+  "name": "ux-doctor",
+  "version": "0.1.0",
+  "description": "Your agent writes ugly UI. This catches it. A static-analysis CLI for React UX/UI that scores your codebase 0-100 and installs as an agent skill for Claude Code, Codex, Cursor, and Copilot. Tuned for Rails+Inertia and TanStack stacks.",
+  "keywords": [
+    "ux",
+    "ui",
+    "react",
+    "tailwind",
+    "inertia",
+    "tanstack",
+    "static-analysis",
+    "linter",
+    "design-tokens",
+    "microcopy",
+    "accessibility",
+    "claude-code",
+    "codex",
+    "cursor",
+    "agent-skill"
+  ],
+  "homepage": "https://github.com/artisanscompany/ux-doctor",
+  "bugs": {
+    "url": "https://github.com/artisanscompany/ux-doctor/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/artisanscompany/ux-doctor.git"
+  },
+  "license": "MIT",
+  "author": "ArtisansCompany",
+  "bin": {
+    "ux-doctor": "bin/ux-doctor.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "bin/",
+    "dist/",
+    "skills/",
+    "README.md",
+    "LICENSE",
+    "uxdoctor.config.example.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "test": "node --test test/",
+    "scan": "node bin/ux-doctor.js scan ."
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  }
+}

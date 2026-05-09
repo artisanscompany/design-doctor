@@ -1,7 +1,7 @@
 ---
 name: design-doctor
 description: Use when finishing a frontend feature, fixing a UI bug, before committing React/Inertia/TanStack code, or when the user wants a UX/UI health check. Static-analysis CLI scoring 0–100. Covers design-token sprawl (color/spacing/typography/z-index/shadow), microcopy quality (CTA shape, banned phrases, smart quotes, inclusive language), accessibility patterns beyond eslint-plugin-jsx-a11y (icon buttons, tap targets, focus replacement, heading order, onclick-on-div), form UX (label vs placeholder, inputmode, error association, submit loading), missing loading/error/empty states, Inertia conventions (Link vs <a>, useForm), TanStack route hygiene (errorComponent, pendingComponent, validateSearch), and devtools-in-prod.
-version: "1.0.0"
+version: "1.1.0"
 ---
 
 # Design Doctor
@@ -44,6 +44,32 @@ npx -y design-doctor@latest scan .
 ```
 
 Works on any machine with Node 18+. Zero runtime dependencies in the core scan path.
+
+## Vision pass (optional, agent-graded)
+
+When the user wants a deeper review than static analysis can give — visual hierarchy, polish, brand coherence, mobile adaptation — run the vision pass. The agent does the grading itself; design-doctor handles screenshotting and folding the scores back in.
+
+**Three steps:**
+
+1. **Capture screenshots and emit the rubric.** A dev server must be running.
+   ```bash
+   npx -y design-doctor@latest scan . --vision --url http://localhost:3000
+   ```
+   This drops screenshots under `.design-doctor/screenshots/` and a rubric at `.design-doctor/rubric.md`, plus a starter `.design-doctor/vision.template.json`.
+
+2. **Grade the screenshots yourself.** Read `.design-doctor/rubric.md` and look at each screenshot in `.design-doctor/screenshots/`. For every route, score each of 10 sub-dimensions 0–10 with a one-line evidence quote. Save your judgments to `.design-doctor/vision.json` (copy the template and fill it in — set every score to a real value, replace empty evidence strings).
+
+3. **Fold the vision scores into the final score.**
+   ```bash
+   npx -y design-doctor@latest finalize
+   ```
+   This produces `.design-doctor/final.json` and prints the composite score.
+
+**Scoring with vision:** static is capped at 70 once vision runs. Vision contributes up to 30. The full 100 requires both passing the linter and looking great in screenshots — you can't hit a 100 from static alone when running with `--vision`.
+
+**Auth:** if your app needs login, set `DESIGNDOCTOR_LOGIN_URL`, `DESIGNDOCTOR_USER`, `DESIGNDOCTOR_PASS` (works with most email + password forms). For complex flows, point `DESIGNDOCTOR_LOGIN_SCRIPT` at a JS file exporting `async login(page, baseUrl)`.
+
+**Playwright:** the vision pass needs Playwright installed. design-doctor declares it as an optional peer dep; install once with `npm i -D playwright && npx playwright install chromium`.
 
 ## What it covers (built-in static rules)
 

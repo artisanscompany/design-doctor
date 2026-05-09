@@ -20,12 +20,16 @@ import { uiStatesAnalyzer } from "./analyzers/ui-states.js";
 import { inertiaAnalyzer } from "./analyzers/inertia.js";
 import { tanstackAnalyzer } from "./analyzers/tanstack.js";
 import { stackAnalyzer } from "./analyzers/stack.js";
+import { runVisionPass } from "./vision/orchestrator.js";
+import { finalize, writeFinalReport } from "./vision/finalize.js";
+import { SUB_DIMENSIONS } from "./vision/rubric.js";
 
 const USAGE = `
 Usage: design-doctor <command> [options]
 
 Commands:
   scan [path]         Scan a React project (default if first arg is a path)
+  finalize [path]     Fold the agent's vision.json into the score (after scan --vision)
   install             Drop design-doctor into detected agent skill dirs
   explain <rule-id>   Show docs for a rule
   rules               List all rules
@@ -42,6 +46,11 @@ Common scan flags:
   --fail-on error|warning  Exit non-zero policy
   --min-score N            Exit non-zero if score < N
   --no-color               Disable ANSI
+
+Vision pass (opt-in, requires Playwright + a running dev server):
+  --vision                 Capture screenshots and emit a rubric for the agent to grade
+  --url URL                Base URL of running app (default http://localhost:3000)
+  --routes-cap N           Max routes to capture (default 10)
 `;
 
 const ANALYZERS: Analyzer[] = [
@@ -67,6 +76,9 @@ interface ScanOpts {
   minScore: number | null;
   failOn: "error" | "warning" | "none";
   diff: string | null;
+  vision: boolean;
+  url: string | null;
+  routesCap: number | null;
 }
 
 export function start(argv: string[]): void {
@@ -85,6 +97,7 @@ export function start(argv: string[]): void {
   if (head === "rules") return runRules();
   if (head === "explain") return runExplain(args.slice(1));
   if (head === "install") return runInstall(args.slice(1));
+  if (head === "finalize") return runFinalize(args.slice(1));
 
   if (head === "scan") return runScan(args.slice(1));
   // Bare path → treat as scan
@@ -129,6 +142,20 @@ function runInstall(args: string[]) {
   }
 }
 
+function runFinalize(args: string[]) {
+  const path = args.find((a) => !a.startsWith("--")) ?? ".";
+  const project = detectProject(path);
+  const outDir = join(project.root, ".design-doctor");
+  try {
+    const result = finalize({ outDir });
+    writeFinalReport(outDir, result);
+    renderFinalize(result);
+  } catch (e) {
+    console.error(e instanceof Error ? e.message : String(e));
+    process.exit(2);
+  }
+}
+
 function runScan(args: string[]) {
   const opts = parseScanArgs(args);
   const project = detectProject(opts.path);
@@ -148,7 +175,7 @@ function runScan(args: string[]) {
     ANALYZERS,
   );
 
-  runner.run().then((result) => {
+  runner.run().then(async (result) => {
     if (opts.strict) {
       for (const d of result.diagnostics) if (d.severity === "warning") d.severity = "error";
     }
@@ -181,8 +208,55 @@ function runScan(args: string[]) {
       // best-effort
     }
 
+    if (opts.vision) {
+      try {
+        const v = await runVisionPass(project, config, score, {
+          baseUrl: opts.url ?? config.url,
+          routesCap: opts.routesCap ?? 10,
+        });
+        printVisionFollowup(v);
+      } catch (e) {
+        console.error("");
+        console.error(`vision pass failed: ${e instanceof Error ? e.message : String(e)}`);
+        process.exit(2);
+      }
+    }
+
     enforcePolicy(score, opts, result.diagnostics);
   });
+}
+
+function printVisionFollowup(v: { rubricPath: string; templatePath: string; capturedRoutes: number; failedRoutes: number; baseUrl: string }) {
+  console.log("");
+  console.log(`vision pass: captured ${v.capturedRoutes} screenshot pairs from ${v.baseUrl}${v.failedRoutes ? ` (${v.failedRoutes} failed)` : ""}`);
+  console.log(`  • rubric: ${v.rubricPath}`);
+  console.log(`  • template: ${v.templatePath}`);
+  console.log("");
+  console.log(`Next:`);
+  console.log(`  1. Read the rubric and the screenshots.`);
+  console.log(`  2. Score each route 0–10 per sub-dimension. Save to .design-doctor/vision.json (template provided).`);
+  console.log(`  3. Run: npx -y design-doctor finalize`);
+}
+
+function renderFinalize(r: ReturnType<typeof finalize>) {
+  console.log("");
+  console.log(`design-doctor — final score`);
+  console.log(`  static: ${r.staticScore} (capped at 70 for vision-aware scoring)`);
+  console.log(`  vision mean: ${r.visionMean}/10  (contributes ${r.visionContribution} of 30)`);
+  console.log(`  final: ${r.finalScore}/100`);
+  console.log("");
+  console.log(`weakest dimensions:`);
+  for (const w of r.weakestDimensions) {
+    const label = SUB_DIMENSIONS.find((d) => d.id === w.id)?.label ?? w.id;
+    console.log(`  ${w.mean.toFixed(1)}/10  ${label}`);
+  }
+  console.log("");
+  console.log(`strongest dimensions:`);
+  for (const s of r.strongestDimensions) {
+    const label = SUB_DIMENSIONS.find((d) => d.id === s.id)?.label ?? s.id;
+    console.log(`  ${s.mean.toFixed(1)}/10  ${label}`);
+  }
+  console.log("");
 }
 
 function enforcePolicy(score: number, opts: ScanOpts, diagnostics: { severity: string }[]) {
@@ -205,6 +279,9 @@ function parseScanArgs(args: string[]): ScanOpts {
     minScore: null,
     failOn: "none",
     diff: null,
+    vision: false,
+    url: null,
+    routesCap: null,
   };
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
@@ -216,6 +293,9 @@ function parseScanArgs(args: string[]): ScanOpts {
       case "--full": opts.full = true; break;
       case "--score": opts.scoreOnly = true; break;
       case "--no-color": opts.noColor = true; break;
+      case "--vision": opts.vision = true; break;
+      case "--url": opts.url = args[++i] ?? null; break;
+      case "--routes-cap": opts.routesCap = parseInt(args[++i] ?? "0", 10) || null; break;
       case "--min-score": opts.minScore = parseInt(args[++i] ?? "0", 10); break;
       case "--fail-on": {
         const v = args[++i];

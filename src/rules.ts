@@ -300,6 +300,20 @@ defineRule({
   fix: "Add `<DialogDescription>...` (or `aria-describedby`) so screen-reader users know what the dialog is about.",
 });
 defineRule({
+  id: "a11y/skip-link",
+  title: "Layout has <nav> but no skip-to-content link",
+  category: "a11y",
+  defaultSeverity: "warning",
+  fix: "Add `<a href=\"#main\" className=\"sr-only focus:not-sr-only\">Skip to content</a>` as the first focusable element in the layout.",
+});
+defineRule({
+  id: "copy/sentence-case-button",
+  title: "Button text in Title Case",
+  category: "copy",
+  defaultSeverity: "info",
+  fix: "Modern UI uses sentence case: \"Save changes\", not \"Save Changes\". Apple HIG, Material, GitHub, and most modern design systems converge here.",
+});
+defineRule({
   id: "a11y/lang-missing",
   title: "Root document missing `lang` attribute",
   category: "a11y",
@@ -365,6 +379,13 @@ defineRule({
   category: "forms",
   defaultSeverity: "warning",
   fix: "Add `aria-describedby` from the input to the error element so assistive tech reads them together.",
+});
+defineRule({
+  id: "forms/zod-without-resolver",
+  title: "Zod schema imported alongside useForm but no zod resolver",
+  category: "forms",
+  defaultSeverity: "warning",
+  fix: "Import the resolver: `import { zodResolver } from '@hookform/resolvers/zod'` and pass `resolver: zodResolver(schema)` to `useForm`.",
 });
 defineRule({
   id: "forms/form-without-fieldset",

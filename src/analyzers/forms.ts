@@ -95,6 +95,17 @@ export const formsAnalyzer: Analyzer = {
         }
       }
 
+      // forms/zod-without-resolver — Zod imported as a schema library AND
+      // useForm in same file but no @hookform/resolvers/zod import. Either the
+      // schema isn't validating the form, or we missed it.
+      if (/from\s+["']zod["']/.test(src) && /\buseForm\s*[(<]/.test(src) && !/from\s+["']@hookform\/resolvers\/zod["']/.test(src)) {
+        emit({
+          ruleId: "forms/zod-without-resolver",
+          message: "File imports Zod and useForm but no @hookform/resolvers/zod. The schema isn't wired into the form.",
+          file: rel,
+        });
+      }
+
       // forms/form-without-fieldset — forms with 4+ inputs lacking <fieldset>
       // grouping. Skip single-purpose forms (login, search, newsletter) — those
       // are flat by design.

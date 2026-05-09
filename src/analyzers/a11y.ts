@@ -267,8 +267,40 @@ export const a11yAnalyzer: Analyzer = {
         message: "<html> tag found without `lang` attribute.",
       });
     }
+
+    // a11y/skip-link — top-level layout file (one with both <nav> and <main> or <Outlet>)
+    // should expose a skip-to-content link. We do a single best-effort emit when
+    // we find a likely layout that has none.
+    const layoutFile = guessLayoutFile(files);
+    if (layoutFile) {
+      let src: string;
+      try { src = readFileSync(layoutFile, "utf8"); } catch { src = ""; }
+      if (/<nav\b/.test(src) && /(<Outlet\b|<main\b|children\}\s*<\/main)/.test(src)) {
+        const hasSkipLink = /sr-only.*?(?:skip[-_ ]?to[-_ ]?content|main)/i.test(src) ||
+                            /href="#main"|href="#content"/i.test(src);
+        if (!hasSkipLink) {
+          emit({
+            ruleId: "a11y/skip-link",
+            message: "Layout has <nav> but no skip-to-content link. Keyboard users have to tab through every nav item to reach the main content.",
+            file: relative(project.root, layoutFile),
+          });
+        }
+      }
+    }
   },
 };
+
+function guessLayoutFile(files: string[]): string | null {
+  // Prefer common layout filenames. We fall back to any TSX containing
+  // `<Outlet />` (TanStack/Inertia layouts often render their tree this way).
+  const candidates = files.filter((f) =>
+    /\b(?:Layout|RootLayout|App|Root|MainLayout)\.(?:tsx|jsx)$/.test(f) ||
+    /\b__root\.(?:tsx|jsx)$/.test(f) ||
+    /pages\/_app\.(?:tsx|jsx)$/.test(f),
+  );
+  if (candidates.length) return candidates[0];
+  return null;
+}
 
 function collectHeadingLevels(src: string): { level: number; line: number }[] {
   const out: { level: number; line: number }[] = [];

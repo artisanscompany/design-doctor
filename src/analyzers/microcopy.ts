@@ -72,6 +72,9 @@ function analyzeFile(src: string, rel: string, ctx: AnalyzerContext) {
       if (/\.\s*$/.test(plainText)) {
         emit({ ruleId: "copy/button-trailing-period", message: `Button label "${truncate(plainText, 60)}" ends with a period.`, file: rel, line: el.line });
       }
+      if (isTitleCase(plainText)) {
+        emit({ ruleId: "copy/sentence-case-button", message: `Button text "${truncate(plainText, 60)}" is in Title Case. Sentence case ("Save changes") is the modern convention.`, file: rel, line: el.line });
+      }
     }
 
     // Toast/alert punctuation — plain-text only.
@@ -177,6 +180,26 @@ function wordCount(s: string): number {
 function truncate(s: string, max: number): string {
   if (s.length <= max) return s;
   return s.slice(0, max - 1) + "…";
+}
+
+function isTitleCase(s: string): boolean {
+  // Multi-word string where every word starts uppercase and the second+ words
+  // aren't proper nouns. We approximate "proper noun" by exempting strings of
+  // exactly one or two words (most short CTAs are fine either way).
+  const words = s.trim().split(/\s+/);
+  if (words.length < 3) return false;
+  // Each substantive word starts with a capital letter; allow lowercase
+  // particles like "of", "and", "the", "to", "for".
+  const PARTICLES = new Set(["of", "and", "the", "to", "for", "in", "on", "at", "a", "an", "with"]);
+  let initialCapsCount = 0;
+  let substantive = 0;
+  for (const w of words) {
+    if (PARTICLES.has(w.toLowerCase())) continue;
+    substantive++;
+    if (/^[A-Z]/.test(w) && /[a-z]/.test(w)) initialCapsCount++;
+  }
+  // All substantive words capped, and at least 3 such words.
+  return substantive >= 3 && initialCapsCount === substantive;
 }
 
 function isPlainText(s: string): boolean {

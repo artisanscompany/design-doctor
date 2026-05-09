@@ -144,6 +144,34 @@ export const a11yAnalyzer: Analyzer = {
           }
         }
 
+        // a11y/role-redundant — implicit-role override that's just noise.
+        const role = el.attrs["role"];
+        if (typeof role === "string" && !role.startsWith("{")) {
+          const implicit = IMPLICIT_ROLE[el.tag];
+          if (implicit && implicit === role) {
+            emit({
+              ruleId: "a11y/role-redundant",
+              message: `<${el.tag} role="${role}"> is redundant — that's already the implicit role.`,
+              file: rel,
+              line: el.line,
+            });
+          }
+        }
+
+        // a11y/empty-heading — heading tag with no static text, no aria-label.
+        if (/^h[1-6]$/.test(el.tag) || el.tag === "Heading") {
+          const stripped = stripJsxComments(el.text).replace(/<[^>]+>/g, "").replace(/\{[^{}]*\}/g, "").trim();
+          const hasAria = !!el.attrs["aria-label"] || !!el.attrs["aria-labelledby"];
+          if (!stripped && !hasAria && !el.selfClosing) {
+            emit({
+              ruleId: "a11y/empty-heading",
+              message: `<${el.tag}> renders no static text. Either remove it or set aria-label, otherwise screen-reader users hit a void heading.`,
+              file: rel,
+              line: el.line,
+            });
+          }
+        }
+
         // shadcn/dialog-without-description — DialogContent / SheetContent / AlertDialogContent
         // without a paired description for screen readers. Common shadcn a11y miss.
         if (el.tag === "DialogContent" || el.tag === "SheetContent" || el.tag === "AlertDialogContent") {
@@ -244,6 +272,33 @@ function escapeRe(s: string): string {
 function stripJsxComments(s: string): string {
   return s.replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, "");
 }
+
+// HTML elements with implicit ARIA roles. Setting role= to the same value is
+// noise (and sometimes blocks the browser from cleaning up the element).
+const IMPLICIT_ROLE: Record<string, string> = {
+  button: "button",
+  a: "link",
+  Link: "link",
+  nav: "navigation",
+  main: "main",
+  header: "banner",
+  footer: "contentinfo",
+  aside: "complementary",
+  section: "region",
+  article: "article",
+  ul: "list",
+  ol: "list",
+  li: "listitem",
+  table: "table",
+  thead: "rowgroup",
+  tbody: "rowgroup",
+  tr: "row",
+  td: "cell",
+  th: "columnheader",
+  img: "img",
+  Image: "img",
+  form: "form",
+};
 
 const LAZY_ALT_WORDS = new Set([
   "image", "img", "picture", "photo", "graphic", "icon", "logo", "avatar", "thumbnail", "thumb", "banner",

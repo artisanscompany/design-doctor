@@ -176,6 +176,13 @@ defineRule({
   fix: "Project has an i18n library — wrap visible strings (`t('key')` / `<Trans>`) so they can be translated.",
 });
 defineRule({
+  id: "copy/redundant-error-prefix",
+  title: "Error/alert text starts with a redundant tone prefix",
+  category: "copy",
+  defaultSeverity: "info",
+  fix: "Drop \"Error:\" / \"Invalid:\" / \"Sorry,\" — the alert styling already conveys the tone. State the problem directly.",
+});
+defineRule({
   id: "copy/inclusive-language",
   title: "Non-inclusive language in user-facing string",
   category: "copy",
@@ -235,6 +242,27 @@ defineRule({
   category: "a11y",
   defaultSeverity: "warning",
   fix: "Add `htmlFor=\"input-id\"` or wrap the input inside the label.",
+});
+defineRule({
+  id: "a11y/role-redundant",
+  title: "ARIA role duplicates the element's implicit role",
+  category: "a11y",
+  defaultSeverity: "info",
+  fix: "Drop the role attribute. `<button>` already has role=\"button\", `<nav>` already has role=\"navigation\".",
+});
+defineRule({
+  id: "a11y/empty-heading",
+  title: "Heading element has no text content",
+  category: "a11y",
+  defaultSeverity: "warning",
+  fix: "Either give the heading text or remove it. Empty headings break document structure for screen readers.",
+});
+defineRule({
+  id: "shadcn/destructive-without-confirm",
+  title: "destructive Button without a confirm step",
+  category: "shadcn",
+  defaultSeverity: "warning",
+  fix: "Wrap destructive actions in <AlertDialog> or gate the onClick on confirm(). Easy-to-trigger destructive UI is a common bug source.",
 });
 defineRule({
   id: "shadcn/dialog-without-description",
@@ -309,6 +337,13 @@ defineRule({
   category: "forms",
   defaultSeverity: "warning",
   fix: "Add `aria-describedby` from the input to the error element so assistive tech reads them together.",
+});
+defineRule({
+  id: "forms/form-without-fieldset",
+  title: "Multi-field form lacks <fieldset> grouping",
+  category: "forms",
+  defaultSeverity: "info",
+  fix: "Wrap related fields in `<fieldset>` with a `<legend>` so screen-reader users can navigate by group.",
 });
 defineRule({
   id: "forms/submit-without-loading-state",

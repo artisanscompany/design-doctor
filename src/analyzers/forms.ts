@@ -95,6 +95,20 @@ export const formsAnalyzer: Analyzer = {
         }
       }
 
+      // forms/form-without-fieldset — forms with 4+ inputs lacking <fieldset>
+      // grouping. Skip single-purpose forms (login, search, newsletter) — those
+      // are flat by design.
+      const inputCount = (src.match(/<(?:input|select|textarea|Input|Textarea|Select)\b(?![A-Za-z])/g) ?? []).length;
+      const hasFieldset = /<fieldset\b/.test(src);
+      const looksLikeMicroForm = /\b(?:login|signin|sign-in|signup|sign-up|search|newsletter|subscribe|reset)\b/i.test(rel);
+      if (inputCount >= 5 && !hasFieldset && !looksLikeMicroForm) {
+        emit({
+          ruleId: "forms/form-without-fieldset",
+          message: `Form has ${inputCount} inputs without <fieldset>. Group related fields with <fieldset><legend>...</legend></fieldset> for screen-reader navigation.`,
+          file: rel,
+        });
+      }
+
       // forms/submit-without-loading-state — fires when <form onSubmit> exists
       // without any of the common patterns that prevent double-submit:
       //   - explicit disabled={isLoading|isPending|isSubmitting|processing|loading}

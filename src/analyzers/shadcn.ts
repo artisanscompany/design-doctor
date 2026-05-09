@@ -61,6 +61,13 @@ export const shadcnAnalyzer: Analyzer = {
         }
       }
 
+      // For shadcn/destructive-without-confirm, scan if the file has any
+      // dialog/alertdialog or confirm() pattern. Per-button check happens below.
+      const fileHasConfirmPattern = /<AlertDialog\b/.test(src) ||
+        /\bconfirm\s*\(/.test(src) ||
+        /\bshowConfirm\s*\(/.test(src) ||
+        /\b(?:useConfirm|ConfirmDialog)\b/.test(src);
+
       for (const el of elements) {
         // shadcn/raw-html-with-shadcn — suggest the primitive when the equivalent is imported in the same file
         const equivalent = SHADCN_PRIMITIVES[el.tag];
@@ -84,6 +91,22 @@ export const shadcnAnalyzer: Analyzer = {
             emit({
               ruleId: "shadcn/variant-fighting",
               message: `<${el.tag} variant="${variant}"> is overriding the variant with className="… ${overrides.join(" ")} …". Pick one source of truth.`,
+              file: rel,
+              line: el.line,
+            });
+          }
+        }
+
+        // shadcn/destructive-without-confirm — destructive Button without
+        // either an enclosing AlertDialog or a confirm() in its onClick.
+        const variantVal = el.attrs["variant"];
+        if (el.tag === "Button" && variantVal === "destructive") {
+          const handler = String(el.attrs["onClick"] ?? el.attrs["onSubmit"] ?? "");
+          const handlerHasConfirm = /\bconfirm\s*\(|\bshowConfirm\s*\(|\bopenConfirm\s*\(/.test(handler);
+          if (!fileHasConfirmPattern && !handlerHasConfirm) {
+            emit({
+              ruleId: "shadcn/destructive-without-confirm",
+              message: `<Button variant="destructive"> without a confirm step. Wrap in <AlertDialog> or call confirm() in onClick — destructive actions deserve friction.`,
               file: rel,
               line: el.line,
             });

@@ -81,6 +81,18 @@ function analyzeFile(src: string, rel: string, ctx: AnalyzerContext) {
       }
     }
 
+    // copy/redundant-error-prefix — toast/alert text starts with "Error:"/"Invalid:"/"Sorry,".
+    if ((TOAST_LIKE_TAGS.has(el.tag) || el.tag === "AlertTitle" || el.tag === "ToastTitle") && plainText) {
+      if (/^(?:error|invalid|sorry|oops|warning|failure)[:!,]/i.test(plainText)) {
+        emit({
+          ruleId: "copy/redundant-error-prefix",
+          message: `"${truncate(plainText, 80)}" — drop the "${plainText.match(/^[A-Za-z]+/)?.[0]}" prefix. Tone is set by the alert styling, not the text.`,
+          file: rel,
+          line: el.line,
+        });
+      }
+    }
+
     // Banned phrases only fire on real CTAs (plain-text button labels) or
     // visible attribute strings (aria-label, alt, placeholder, title). Arbitrary
     // JSX text fragments are too noisy and contain too many false positives.

@@ -60,6 +60,13 @@ defineRule({
   fix: "Pick one of px or rem for spacing/sizing and stay consistent.",
 });
 defineRule({
+  id: "design/variant-sprawl",
+  title: "Component used with too many distinct variants",
+  category: "design",
+  defaultSeverity: "warning",
+  fix: "Settle on a small fixed set of variants in your design system and migrate stragglers.",
+});
+defineRule({
   id: "design/dark-mode-pairing",
   title: "Tailwind class without paired dark: variant",
   category: "design",
@@ -172,6 +179,20 @@ defineRule({
   category: "a11y",
   defaultSeverity: "warning",
   fix: "Set `<html lang=\"en\">` (or the actual primary language) in your layout/index template.",
+});
+defineRule({
+  id: "a11y/img-without-alt",
+  title: "Image has no alt attribute",
+  category: "a11y",
+  defaultSeverity: "error",
+  fix: "Add a descriptive `alt`. For purely decorative images, use `alt=\"\"` and `role=\"presentation\"`.",
+});
+defineRule({
+  id: "a11y/lazy-alt-text",
+  title: "Image alt text is generic or a filename",
+  category: "a11y",
+  defaultSeverity: "warning",
+  fix: "Describe what the image is or means in context — not its file extension or generic noun.",
 });
 defineRule({
   id: "a11y/autocomplete-missing",

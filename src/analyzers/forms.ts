@@ -95,20 +95,34 @@ export const formsAnalyzer: Analyzer = {
         }
       }
 
-      // forms/submit-without-loading-state — heuristic: `onSubmit` handler in <form>, no isPending/isSubmitting/processing nearby disabling the submit
-      const formMatches = src.match(/<form\b[^>]*\bonSubmit/g);
-      if (formMatches) {
-        const usesLoadingState =
-          /(isLoading|isPending|isSubmitting|processing|loading)\s*[}=,]/.test(src) &&
-          /disabled=\{/.test(src);
-        const usesUseForm = /useForm\s*\(/.test(src);
-        if (!usesLoadingState && !usesUseForm) {
-          emit({
-            ruleId: "forms/submit-without-loading-state",
-            message: "<form onSubmit> without a loading/disabled state on the submit button — users can double-submit.",
-            file: rel,
-          });
-        }
+      // forms/submit-without-loading-state — fires when <form onSubmit> exists
+      // without any of the common patterns that prevent double-submit:
+      //   - explicit disabled={isLoading|isPending|isSubmitting|processing|loading}
+      //   - Inertia useForm (form.processing)
+      //   - react-hook-form (formState.isSubmitting)
+      //   - React 19 useFormStatus / useTransition / form action= prop
+      //   - explicit setSubmitting / setLoading state hook
+      const formOnSubmit = src.match(/<form\b[^>]*\bonSubmit/);
+      const formAction = src.match(/<form\b[^>]*\baction=\{/);  // React 19 form action
+      if (!formOnSubmit && !formAction) continue;
+      // React 19 form action prop sidesteps this whole class of bug.
+      if (formAction) continue;
+
+      const usesExplicitLoadingState =
+        /(isLoading|isPending|isSubmitting|processing|loading|submitting)\s*[}=,]/.test(src) &&
+        /disabled=\{/.test(src);
+      const usesUseForm = /\buseForm\s*\(/.test(src);                       // Inertia / react-hook-form
+      const usesFormState = /\bformState\s*[.:{]/.test(src);                 // react-hook-form
+      const usesFormStatus = /\buseFormStatus\s*\(/.test(src);                // React 19
+      const usesTransition = /\buseTransition\s*\(/.test(src);                // React 19
+      const usesActionState = /\buseActionState\s*\(/.test(src);              // React 19
+
+      if (!usesExplicitLoadingState && !usesUseForm && !usesFormState && !usesFormStatus && !usesTransition && !usesActionState) {
+        emit({
+          ruleId: "forms/submit-without-loading-state",
+          message: "<form onSubmit> without a disabled / pending state on the submit button — users can double-submit.",
+          file: rel,
+        });
       }
     }
   },

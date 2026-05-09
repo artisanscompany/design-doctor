@@ -20,6 +20,7 @@ import { uiStatesAnalyzer } from "./analyzers/ui-states.js";
 import { inertiaAnalyzer } from "./analyzers/inertia.js";
 import { tanstackAnalyzer } from "./analyzers/tanstack.js";
 import { stackAnalyzer } from "./analyzers/stack.js";
+import { variantsAnalyzer } from "./analyzers/variants.js";
 import { runVisionPass } from "./vision/orchestrator.js";
 import { finalize, writeFinalReport } from "./vision/finalize.js";
 import { SUB_DIMENSIONS } from "./vision/rubric.js";
@@ -63,6 +64,7 @@ const ANALYZERS: Analyzer[] = [
   inertiaAnalyzer,
   tanstackAnalyzer,
   stackAnalyzer,
+  variantsAnalyzer,
 ];
 
 interface ScanOpts {

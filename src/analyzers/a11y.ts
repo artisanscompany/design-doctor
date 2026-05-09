@@ -49,17 +49,55 @@ export const a11yAnalyzer: Analyzer = {
         }
 
         // tap-target-too-small (conservative — only obvious cases)
+        // Fire when:
+        //   - the element has an icon child
+        //   - the icon child has a known small Tailwind size (w-3/h-3 to w-5/h-5)
+        //   - and total padding (p-* + child size + child size) likely renders < 44px
         if (el.tag === "button" || el.tag === "a" || el.tag === "Button") {
           const cls = (el.attrs["className"] ?? el.attrs["class"]) as string | undefined;
           if (typeof cls === "string" && !cls.startsWith("{")) {
             const padding = TAILWIND_PADDING_VALUE_RE.exec(cls);
             const paddingVal = padding ? parseInt(padding[2], 10) : 0;
-            const innerIcon = ICON_LIKE_RE.test(el.text);
-            // crude: icon ~16-20px, Tailwind p-1 = 4px, p-2 = 8px. need ≥(44-16)/2 = 14px ≈ p-3.5+.
-            if (innerIcon && paddingVal > 0 && paddingVal < 3) {
+            // Look at the inner JSX for a w-N or size-N on the icon. Tailwind v4: 1 unit = 4px.
+            const innerSizeMatch = el.text.match(/\b(?:w|size)-(\d+)\b/);
+            const innerSizeVal = innerSizeMatch ? parseInt(innerSizeMatch[1], 10) : NaN;
+            if (
+              !Number.isNaN(innerSizeVal) &&
+              innerSizeVal <= 5 &&         // icon ≤20px
+              paddingVal > 0 &&            // some explicit padding (else we don't know)
+              paddingVal < 3               // p-1/p-2 → total ≤32px
+            ) {
+              const totalPx = innerSizeVal * 4 + paddingVal * 4 * 2;
               emit({
                 ruleId: "a11y/tap-target-too-small",
-                message: `Icon ${el.tag} with padding p-${paddingVal} likely renders smaller than 44×44.`,
+                message: `Icon ${el.tag} with p-${paddingVal} around w-${innerSizeVal} icon ≈ ${totalPx}px — below the 44×44 minimum.`,
+                file: rel,
+                line: el.line,
+              });
+            }
+          }
+        }
+
+        // img alt-text quality
+        if (el.tag === "img" || el.tag === "Image") {
+          const alt = el.attrs["alt"];
+          const role = el.attrs["role"];
+          const ariaHidden = el.attrs["aria-hidden"];
+          const decorativeOptOut = role === "presentation" || role === "none" || ariaHidden === "true";
+
+          if (alt === undefined && !decorativeOptOut) {
+            emit({
+              ruleId: "a11y/img-without-alt",
+              message: `<${el.tag}> has no alt attribute. Add a descriptive alt="…" or alt="" + role="presentation" if decorative.`,
+              file: rel,
+              line: el.line,
+            });
+          } else if (typeof alt === "string" && !alt.startsWith("{") && alt.trim().length > 0) {
+            const lazy = isLazyAlt(alt);
+            if (lazy) {
+              emit({
+                ruleId: "a11y/lazy-alt-text",
+                message: `<${el.tag} alt="${alt}"> — ${lazy}`,
                 file: rel,
                 line: el.line,
               });
@@ -147,4 +185,22 @@ function lineAt(src: string, idx: number): number {
 
 function escapeRe(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const LAZY_ALT_WORDS = new Set([
+  "image", "img", "picture", "photo", "graphic", "icon", "logo", "avatar", "thumbnail", "thumb", "banner",
+]);
+
+function isLazyAlt(alt: string): string | null {
+  const trimmed = alt.trim().toLowerCase();
+  if (LAZY_ALT_WORDS.has(trimmed)) {
+    return `"${alt}" is a generic word, not a description. Describe what's in the image or what it represents.`;
+  }
+  if (/\.(png|jpe?g|gif|webp|svg|avif)$/i.test(trimmed)) {
+    return `alt looks like a filename. Describe the image, don't restate the file path.`;
+  }
+  if (trimmed.startsWith("image of ") || trimmed.startsWith("picture of ") || trimmed.startsWith("photo of ")) {
+    return `Drop "image of"/"picture of" — screen readers already announce the role.`;
+  }
+  return null;
 }

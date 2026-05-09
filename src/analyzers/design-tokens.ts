@@ -12,7 +12,11 @@ const HEX_RE = /#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/g;
 const RGB_RE = /rgba?\(\s*[\d.]+[\s,]+[\d.]+[\s,]+[\d.]+(?:[\s,]+[\d.]+%?)?\s*\)/gi;
 const HSL_RE = /hsla?\(\s*[\d.]+\s*,?\s*[\d.]+%?\s*,?\s*[\d.]+%?(?:\s*,?\s*[\d.]+%?)?\s*\)/gi;
 
-const ARBITRARY_TW_RE = /\b(?:[a-z]+:)*(?:p|m|gap|w|h|text|leading|tracking|rounded|border|bg|from|to|via|ring|space|top|left|right|bottom|inset|translate|rotate|skew|scale|opacity|z|grid-cols|grid-rows|aspect)-(?:x|y|t|r|b|l)?-?\[([^\]]+)\]/g;
+// Only the utilities where an arbitrary value genuinely bypasses the design
+// scale. Decorative utilities (tracking, leading, opacity, translate, rotate,
+// skew, scale, blur, brightness, etc.) are commonly arbitrary by design intent
+// and would be noise here — they live in a separate "decorative" bucket below.
+const BYPASS_TW_RE = /\b(?:[a-z]+:)*(?:p|m|gap|space|w|h|min-w|min-h|max-w|max-h|size|top|left|right|bottom|inset|text|bg|from|to|via|ring|border|outline|rounded|z|grid-cols|grid-rows|aspect|basis|cols|rows)-(?:x|y|t|r|b|l)?-?\[([^\]]+)\]/g;
 
 const FONT_WEIGHT_RE = /font-weight\s*:\s*([^;}\n]+)/gi;
 const FONT_FAMILY_RE = /font-family\s*:\s*([^;}\n]+)/gi;
@@ -83,9 +87,9 @@ export const designTokensAnalyzer: Analyzer = {
         }
       }
 
-      ARBITRARY_TW_RE.lastIndex = 0;
+      BYPASS_TW_RE.lastIndex = 0;
       let mm: RegExpExecArray | null;
-      while ((mm = ARBITRARY_TW_RE.exec(src))) {
+      while ((mm = BYPASS_TW_RE.exec(src))) {
         const { line } = locate(src, mm.index);
         arbitraryHits.push({ file: rel, line, cls: mm[0] });
       }
